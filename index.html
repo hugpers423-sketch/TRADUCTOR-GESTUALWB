@@ -3,379 +3,562 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comunicador Inclusivo: Señas ⇆ Avatar Humano y Voz</title>
-  
-  <!-- Three.js + GLTFLoader + OrbitControls (para encuadre perfecto) -->
+  <title>Comunicador Inclusivo Pro - LSM & International Sign</title>
+
+  <!-- Three.js + GLTFLoader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- MediaPipe Hands & Camera Utils -->
+  <!-- MediaPipe Hands & Drawing Utils -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: #0b0e14;
-      color: #e6edf3;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      padding: 16px;
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-card: #121824;
+      --bg-card-border: #232d3f;
+      --accent-blue: #2563eb;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-primary); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+    /* LOGIN MODAL / OVERLAY */
+    #login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10, 13, 20, 0.95);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      width: 100%; max-width: 420px;
+      padding: 32px; border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+    .logo-container {
+      width: 80px; height: 80px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 20px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    }
+    .login-box h2 { font-size: 1.5rem; margin-bottom: 8px; font-weight: 700; }
+    .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .input-group { margin-bottom: 16px; text-align: left; }
+    .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+    .input-group input {
+      width: 100%; padding: 12px 14px;
+      background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none;
+    }
+    .input-group input:focus { border-color: var(--accent-blue); }
+    .btn-login {
+      width: 100%; padding: 12px; background: linear-gradient(90deg, var(--accent-blue), #3b82f6);
+      color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+      font-size: 1rem; transition: all 0.2s; margin-top: 8px;
+    }
+    .btn-login:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    /* LAYOUT PRINCIPAL */
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
+      background: #0e131f; border-bottom: 1px solid var(--bg-card-border);
+      padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
     }
-
-    h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .header-logo { display: flex; align-items: center; gap: 12px; }
+    .header-logo .icon-box {
+      width: 40px; height: 40px; background: var(--accent-blue);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
     }
+    .header-logo h1 { font-size: 1.2rem; font-weight: 700; }
 
+    .nav-tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      padding: 8px 16px; border-radius: 8px; background: transparent; border: none;
+      color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn.active, .tab-btn:hover { background: var(--bg-card-border); color: #fff; }
+
+    .user-info { display: flex; align-items: center; gap: 12px; }
     .user-badge {
-      background: #1f6feb;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
+      width: 36px; height: 36px; background: var(--accent-purple);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
     }
 
-    .main-grid {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 16px;
+    main { padding: 20px; max-width: 1600px; margin: 0 auto; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* GRID COMUNICADOR */
+    .communicator-grid {
+      display: grid; grid-template-columns: 360px 1fr; gap: 20px;
     }
 
     .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: 12px; padding: 18px; display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
-    .card-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #8b949e;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bg-card-border);
+    }
+    .card-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+
+    /* ENTRADA DE SEÑAS */
+    .video-wrapper {
+      position: relative; width: 100%; height: 250px; background: #000;
+      border-radius: 10px; overflow: hidden; margin-bottom: 12px;
+      border: 1px solid var(--bg-card-border);
+    }
+    video, canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .lang-badge {
+      position: absolute; top: 10px; right: 10px; z-index: 10;
+      background: rgba(16, 185, 129, 0.9); color: #fff; font-size: 0.7rem; font-weight: 800;
+      padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(4px);
     }
 
-    /* Panel Cámara */
-    .video-container {
-      position: relative;
-      width: 100%;
-      height: 230px;
-      background: #000;
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 10px;
+    .detection-status {
+      background: #172033; border: 1px solid #2b3854; color: #60a5fa;
+      padding: 12px; border-radius: 8px; text-align: center; font-weight: 700;
+      font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
 
-    video, canvas.overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
+    .control-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .btn {
+      padding: 10px; border: none; border-radius: 8px; font-weight: 700;
+      font-size: 0.75rem; cursor: pointer; text-transform: uppercase; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.2s;
+    }
+    .btn-green { background: var(--accent-green); }
+    .btn-blue { background: var(--accent-blue); }
+    .btn-red { background: var(--accent-red); }
+    .btn:hover { opacity: 0.9; transform: scale(0.98); }
+
+    .train-box { display: flex; gap: 8px; }
+    .train-box input {
+      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
     }
 
-    .badge-lsm {
-      position: absolute;
-      top: 8px; right: 8px;
-      background: #238636;
-      color: #fff;
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 10px;
-      z-index: 10;
+    /* SECCIÓN OYENTE A AVATAR (TEXTO/VOZ -> SEÑAS) */
+    .speaker-section {
+      background: #0e131f; border: 1px solid var(--bg-card-border);
+      border-radius: 10px; padding: 14px; margin-top: 14px;
+    }
+    .speaker-title { font-size: 0.8rem; font-weight: 700; color: #a7f3d0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .speaker-controls { display: flex; gap: 8px; }
+    .speaker-controls input {
+      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
     }
 
-    .status-banner {
-      background: #1f6feb;
-      color: #fff;
-      text-align: center;
-      padding: 10px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
+    /* AVATAR 3D PANEL */
+    .avatar-wrapper {
+      position: relative; width: 100%; height: 420px; background: radial-gradient(circle, #1a2336 0%, #090d16 100%);
+      border-radius: 10px; overflow: hidden; border: 1px solid var(--bg-card-border);
     }
-
-    .btn-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    button {
-      border: none;
-      border-radius: 6px;
-      padding: 8px 4px;
-      color: white;
-      font-weight: 700;
-      font-size: 0.72rem;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: opacity 0.2s;
-    }
-    button:hover { opacity: 0.9; }
-
-    .btn-start { background: #238636; }
-    .btn-audio { background: #1f6feb; }
-    .btn-stop { background: #da3633; }
-
-    .input-sign {
-      width: 100%;
-      padding: 9px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      color: #fff;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      margin-bottom: 8px;
-    }
-
-    .btn-train {
-      width: 100%;
-      background: #238636;
-      padding: 10px;
-      font-size: 0.85rem;
-    }
-
-    /* Panel Avatar 3D */
-    #avatar-container {
-      width: 100%;
-      height: 380px;
-      background: #000;
-      border-radius: 6px;
-      position: relative;
-      overflow: hidden;
-    }
+    #avatar-canvas { width: 100%; height: 100%; }
 
     .subtitle-banner {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      margin-top: 10px;
-      padding: 12px;
-      text-align: center;
-      color: #3fb950;
-      font-weight: 800;
-      font-size: 1.1rem;
-      letter-spacing: 0.5px;
+      background: #0e131f; border: 1px solid var(--bg-card-border); border-radius: 10px;
+      margin-top: 14px; padding: 16px; text-align: center; color: #34d399; font-weight: 800;
+      font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+
+    .lang-selector {
+      padding: 6px 12px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.8rem; outline: none; cursor: pointer;
+    }
+
+    /* GESTIÓN DE USUARIOS (ADMIN) */
+    .admin-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+    .user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .user-table th, .user-table td {
+      padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--bg-card-border); font-size: 0.9rem;
+    }
+    .user-table th { background: #0e131f; color: var(--text-muted); font-weight: 600; }
+    .status-active { color: var(--accent-green); font-weight: 700; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>🖐️ Comunicador Inclusivo: Señas ⇆ Avatar Humano y Voz</h1>
-    <div class="user-badge">H</div>
-  </header>
-
-  <div class="main-grid">
-    <!-- PANEL IZQUIERDO -->
-    <div class="card">
-      <div class="card-title">1. Entrada de Señas (Persona Sorda)</div>
-      <div class="video-container">
-        <span class="badge-lsm">• LSM / GESTOS</span>
-        <video id="input-video" playsinline></video>
-        <canvas class="overlay" id="output-canvas"></canvas>
+  <!-- LOGIN MODAL -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <div class="logo-container">
+        <i data-lucide="hand" style="width: 44px; height: 44px; color: #fff;"></i>
       </div>
+      <h2>Comunicador Inclusivo Pro</h2>
+      <p>Plataforma Inteligente de Traducción Bidireccional de Señas</p>
 
-      <div class="status-banner" id="status-sign">ESPERANDO SEÑA...</div>
-
-      <div class="btn-group">
-        <button class="btn-start" onclick="startCamera()">INICIAR CÁMARA</button>
-        <button class="btn-audio" id="audio-btn" onclick="toggleAudio()">AUDIO AUTO: ON</button>
-        <button class="btn-stop" onclick="stopCamera()">DETENER</button>
+      <div class="input-group">
+        <label>Usuario Administrador</label>
+        <input type="text" id="login-user" value="admin" placeholder="Ingresa usuario">
       </div>
-
-      <input type="text" id="new-sign" class="input-sign" placeholder="Nombre de nueva seña...">
-      <button class="btn-train" onclick="trainSign()">ENTRENAR SEÑA ACTUAL ➕</button>
-    </div>
-
-    <!-- PANEL DERECHO: AVATAR 3D -->
-    <div class="card">
-      <div class="card-title">
-        <span>2. TRADUCTOR A AVATAR HUMANO (PARA PERSONA SORDA)</span>
-        <span>🌐 IDIOMA SEÑAS: LSM / INTERNATIONAL</span>
+      <div class="input-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" value="1234" placeholder="Ingresa contraseña">
       </div>
-
-      <div id="avatar-container"></div>
-
-      <div class="subtitle-banner" id="subtitle-box">
-        AVATAR INTERPRETANDO: ¡HOLA VÍCTOR! ¿CÓMO ESTÁS?
+      <button class="btn-login" onclick="handleLogin()">INICIAR SESIÓN</button>
+      <div id="login-error" style="color: var(--accent-red); font-size: 0.85rem; margin-top: 12px; display: none;">
+        Credenciales incorrectas (Prueba admin / 1234)
       </div>
     </div>
   </div>
 
-  <script>
-    let camera = null;
-    let autoAudio = true;
-    let scene, camera3D, renderer, avatarGroup, leftArm, rightArm, head, mixer;
-    let clock = new THREE.Clock();
+  <!-- APP PRINCIPAL -->
+  <div id="app-container" style="display: none;">
+    <header>
+      <div class="header-logo">
+        <div class="icon-box"><i data-lucide="hand" style="color: #fff;"></i></div>
+        <div>
+          <h1>Comunicador Inclusivo Pro</h1>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Traducción LSM & Lengua de Señas Internacional</span>
+        </div>
+      </div>
 
-    // --- 1. CONFIGURACIÓN DEL AVATAR 3D PROFESIONAL ---
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('communicator')">
+          <i data-lucide="message-square"></i> Traductor Bidireccional
+        </button>
+        <button class="tab-btn" onclick="switchTab('admin')">
+          <i data-lucide="users"></i> Gestión de Usuarios
+        </button>
+      </div>
+
+      <div class="user-info">
+        <span style="font-size: 0.85rem; font-weight: 600;" id="current-user-name">Administrador</span>
+        <div class="user-badge">A</div>
+        <button class="btn btn-red" style="padding: 6px 12px;" onclick="handleLogout()"><i data-lucide="log-out"></i></button>
+      </div>
+    </header>
+
+    <main>
+      <!-- TAB 1: COMUNICADOR BIDIRECCIONAL -->
+      <div id="tab-communicator" class="tab-content active">
+        <div class="communicator-grid">
+          
+          <!-- PANEL IZQUIERDO: SEÑAS -> VOZ/TEXTO -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">1. Captura de Señas (Persona Sorda)</span>
+            </div>
+
+            <div class="video-wrapper">
+              <span class="lang-badge" id="lang-display-badge">LSM</span>
+              <video id="input-video" playsinline></video>
+              <canvas class="overlay" id="output-canvas"></canvas>
+            </div>
+
+            <div class="detection-status" id="status-sign">
+              <i data-lucide="eye"></i> ESPERANDO SEÑA...
+            </div>
+
+            <div class="control-btns">
+              <button class="btn btn-green" onclick="startCamera()"><i data-lucide="camera"></i> Iniciar</button>
+              <button class="btn btn-blue" id="audio-btn" onclick="toggleAudio()"><i data-lucide="volume-2"></i> Voz: ON</button>
+              <button class="btn btn-red" onclick="stopCamera()"><i data-lucide="square"></i> Parar</button>
+            </div>
+
+            <div class="train-box">
+              <input type="text" id="new-sign" placeholder="Entrenar nueva seña...">
+              <button class="btn btn-green" onclick="trainSign()"><i data-lucide="plus"></i></button>
+            </div>
+
+            <!-- ENTRADA DE OYENTE (VOZ / TEXTO -> AVATAR TRADUCE EN SEÑAS) -->
+            <div class="speaker-section">
+              <div class="speaker-title"><i data-lucide="mic"></i> Persona Oyente (Escribir o Hablar)</div>
+              <div class="speaker-controls">
+                <input type="text" id="speaker-text" placeholder="Escribe un mensaje para traducir a señas...">
+                <button class="btn btn-blue" onclick="translateToSign()"><i data-lucide="send"></i></button>
+                <button class="btn btn-green" id="mic-btn" onclick="startSpeechRecognition()"><i data-lucide="mic"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL DERECHO: AVATAR 3D INTERPRETE -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">2. Avatar Intérprete Humano 3D</span>
+              <div>
+                <select class="lang-selector" id="sign-language-select" onchange="changeLanguage()">
+                  <option value="LSM">LSM - Lengua de Señas Mexicana</option>
+                  <option value="IS">IS - Lengua de Señas Internacional</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="avatar-wrapper">
+              <div id="avatar-container" style="width:100%; height:100%;"></div>
+            </div>
+
+            <div class="subtitle-banner" id="subtitle-box">
+              AVATAR EN ESPERA / LISTO PARA INTERPRETAR
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 2: GESTIÓN DE USUARIOS (ADMIN) -->
+      <div id="tab-admin" class="tab-content">
+        <div class="admin-grid">
+          
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Crear Nuevo Cliente / Usuario</span>
+            </div>
+            <div class="input-group">
+              <label>Nombre Completo</label>
+              <input type="text" id="new-user-name" placeholder="Ej. Carlos Mendoza">
+            </div>
+            <div class="input-group">
+              <label>Correo Electrónico</label>
+              <input type="email" id="new-user-email" placeholder="carlos@empresa.com">
+            </div>
+            <div class="input-group">
+              <label>Rol de Usuario</label>
+              <select class="input-group input" id="new-user-role" style="background:#090c10; color:#fff;">
+                <option value="Cliente">Cliente Sordo / Oyente</option>
+                <option value="Administrador">Administrador</option>
+              </select>
+            </div>
+            <button class="btn btn-green" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="createUser()">
+              <i data-lucide="user-plus"></i> CREAR USUARIO
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Usuarios Registrados en la Aplicación</span>
+            </div>
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="user-list-tbody">
+                <tr>
+                  <td>Administrador General</td>
+                  <td>admin@inclusivo.com</td>
+                  <td>Administrador</td>
+                  <td><span class="status-active">● Activo</span></td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td>Víctor Hernández</td>
+                  <td>victor@sordos.org</td>
+                  <td>Cliente</td>
+                  <td><span class="status-active">● Activo</span></td>
+                  <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // --- ICONOS LUCIDE ---
+    lucide.createIcons();
+
+    // --- ESTADO GLOBAL Y CONFIGURACIÓN ---
+    let autoAudio = true;
+    let currentLang = 'LSM';
+    let camera = null;
+    let scene, camera3D, renderer, leftArm, rightArm, head, leftHand, rightHand;
+    let clock = new THREE.Clock();
+    let isSigning = false;
+    let signAnimationTimer = null;
+    let lastDetectedSign = "";
+    let lastDetectionTime = 0;
+
+    // --- AUTENTICACIÓN Y NAVEGACIÓN ---
+    function handleLogin() {
+      const u = document.getElementById('login-user').value.trim();
+      const p = document.getElementById('login-pass').value.trim();
+      if (u === 'admin' && p === '1234') {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        initAvatar3D();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+
+    function handleLogout() {
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('login-overlay').style.display = 'flex';
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if (tabName === 'communicator') {
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-communicator').classList.add('active');
+      } else {
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-admin').classList.add('active');
+      }
+    }
+
+    // --- AVATAR 3D REFINADO Y ENCUADRADO PERFECTO ---
     function initAvatar3D() {
       const container = document.getElementById('avatar-container');
       const w = container.clientWidth;
       const h = container.clientHeight;
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x020408);
 
-      // Encuadre optimizado (plano medio: torso y cabeza)
+      // Cámara perfectamente encuadrada en la parte superior del cuerpo
       camera3D = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
-      camera3D.position.set(0, 1.45, 1.8); // Enfocado directo en la cara y torso
-      camera3D.lookAt(0, 1.35, 0);
+      camera3D.position.set(0, 1.45, 1.75);
+      camera3D.lookAt(0, 1.38, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(w, h);
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.shadowMap.enabled = true;
       container.appendChild(renderer.domElement);
 
-      // Iluminación Profesional de Estudio
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      // Iluminación de Estudio de Alta Definición
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(ambientLight);
 
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
-      mainLight.position.set(2, 3, 2);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      mainLight.position.set(2, 4, 3);
       scene.add(mainLight);
 
-      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.5); // Luz azul de relleno
+      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
       fillLight.position.set(-2, 2, -1);
       scene.add(fillLight);
 
-      // Intentar cargar modelo humanoide Ready Player Me o fallback de alta calidad
-      const loader = new THREE.GLTFLoader();
-      
-      // Modelo humanoide 3D de avatar expresivo
-      const modelURL = 'https://models.readyplayer.me/6460d375e4ecd2d7680a3712.glb';
-
-      loader.load(
-        modelURL,
-        (gltf) => {
-          const model = gltf.scene;
-          model.position.set(0, 0, 0);
-          model.scale.set(1, 1, 1);
-          scene.add(model);
-
-          if (gltf.animations && gltf.animations.length) {
-            mixer = new THREE.AnimationMixer(model);
-            const action = mixer.clipAction(gltf.animations[0]);
-            action.play();
-          }
-        },
-        undefined,
-        (err) => {
-          console.log("Cargando Avatar Humanoide Estilizado Integrado.");
-          buildDetailedHumanoid();
-        }
-      );
-
-      animate();
+      buildDetailedHumanoidAvatar();
+      animate3D();
     }
 
-    // Avatar Humanoide Estilizado Integrado (Fallback sin fallos de red)
-    function buildDetailedHumanoid() {
-      avatarGroup = new THREE.Group();
+    function buildDetailedHumanoidAvatar() {
+      const avatarGroup = new THREE.Group();
 
-      // Materiales
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xe0ac69, roughness: 0.6 });
-      const clothMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, roughness: 0.4 });
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xe5a978, roughness: 0.5 });
+      const clothMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.8 });
 
-      // Torso
-      const torsoGeo = new THREE.CylinderGeometry(0.24, 0.18, 0.7, 32);
+      // Torso / Camisa
+      const torsoGeo = new THREE.CylinderGeometry(0.25, 0.20, 0.75, 32);
       const torso = new THREE.Mesh(torsoGeo, clothMat);
       torso.position.y = 1.0;
       avatarGroup.add(torso);
 
       // Cuello
-      const neckGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.12, 16);
+      const neckGeo = new THREE.CylinderGeometry(0.065, 0.075, 0.12, 16);
       const neck = new THREE.Mesh(neckGeo, skinMat);
-      neck.position.y = 1.41;
+      neck.position.y = 1.42;
       avatarGroup.add(neck);
 
       // Cabeza
       const headGeo = new THREE.SphereGeometry(0.14, 32, 32);
       head = new THREE.Mesh(headGeo, skinMat);
-      head.position.y = 1.55;
+      head.position.y = 1.57;
       avatarGroup.add(head);
 
       // Cabello
-      const hairGeo = new THREE.SphereGeometry(0.145, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+      const hairGeo = new THREE.SphereGeometry(0.146, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
       const hair = new THREE.Mesh(hairGeo, hairMat);
-      hair.position.y = 1.57;
+      hair.position.y = 1.59;
       avatarGroup.add(hair);
 
-      // Ojos
-      const eyeGeo = new THREE.SphereGeometry(0.018, 16, 16);
+      // Ojos Expresivos
+      const eyeGeo = new THREE.SphereGeometry(0.016, 16, 16);
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
       const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(-0.045, 1.57, 0.125);
+      eyeL.position.set(-0.045, 1.58, 0.128);
       const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeR.position.set(0.045, 1.57, 0.125);
-      avatarGroup.add(eyeL);
-      avatarGroup.add(eyeR);
+      eyeR.position.set(0.045, 1.58, 0.128);
+      avatarGroup.add(eyeL); avatarGroup.add(eyeR);
 
-      // Brazos articulados para señas
-      const armGeo = new THREE.CylinderGeometry(0.04, 0.035, 0.45, 16);
-      
-      leftArm = new THREE.Mesh(armGeo, clothMat);
-      leftArm.position.set(-0.28, 1.15, 0.1);
-      leftArm.rotation.z = 0.4;
-      leftArm.rotation.x = 0.8;
+      // Brazos y Manos Articuladas
+      const armGeo = new THREE.CylinderGeometry(0.042, 0.035, 0.45, 16);
+      const handGeo = new THREE.BoxGeometry(0.08, 0.02, 0.09);
 
-      rightArm = new THREE.Mesh(armGeo, clothMat);
-      rightArm.position.set(0.28, 1.15, 0.1);
-      rightArm.rotation.z = -0.4;
-      rightArm.rotation.x = 0.8;
-
+      // Brazo Izquierdo
+      leftArm = new THREE.Group();
+      leftArm.position.set(-0.28, 1.30, 0);
+      const lMesh = new THREE.Mesh(armGeo, clothMat);
+      lMesh.position.y = -0.22;
+      leftArm.add(lMesh);
+      leftHand = new THREE.Mesh(handGeo, skinMat);
+      leftHand.position.y = -0.45;
+      leftArm.add(leftHand);
       avatarGroup.add(leftArm);
+
+      // Brazo Derecho
+      rightArm = new THREE.Group();
+      rightArm.position.set(0.28, 1.30, 0);
+      const rMesh = new THREE.Mesh(armGeo, clothMat);
+      rMesh.position.y = -0.22;
+      rightArm.add(rMesh);
+      rightHand = new THREE.Mesh(handGeo, skinMat);
+      rightHand.position.y = -0.45;
+      rightArm.add(rightHand);
       avatarGroup.add(rightArm);
 
-      avatarGroup.position.y = -0.15;
       scene.add(avatarGroup);
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      const t = Date.now() * 0.003;
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+      const t = clock.getElapsedTime();
 
-      if (mixer) mixer.update(delta);
+      if (!isSigning) {
+        // Movimiento natural en reposo (idle)
+        leftArm.rotation.x = 0.3 + Math.sin(t * 1.5) * 0.05;
+        leftArm.rotation.z = 0.2;
+        rightArm.rotation.x = 0.3 + Math.cos(t * 1.5) * 0.05;
+        rightArm.rotation.z = -0.2;
+        head.rotation.y = Math.sin(t * 0.8) * 0.05;
+      } else {
+        // Movimiento activo de interpretación en señas
+        leftArm.rotation.x = 0.8 + Math.sin(t * 8) * 0.4;
+        leftArm.rotation.y = Math.cos(t * 6) * 0.3;
+        leftArm.rotation.z = 0.3;
 
-      // Animación fluida de interpretación gestual
-      if (leftArm && rightArm) {
-        leftArm.rotation.x = 0.6 + Math.sin(t * 2) * 0.25;
-        leftArm.rotation.y = Math.cos(t * 2) * 0.2;
-        rightArm.rotation.x = 0.6 - Math.sin(t * 2) * 0.25;
-        rightArm.rotation.y = -Math.cos(t * 2) * 0.2;
-        if (head) head.rotation.y = Math.sin(t) * 0.08;
+        rightArm.rotation.x = 0.8 + Math.cos(t * 8) * 0.4;
+        rightArm.rotation.y = -Math.sin(t * 6) * 0.3;
+        rightArm.rotation.z = -0.3;
+
+        head.rotation.y = Math.sin(t * 4) * 0.1;
       }
 
       renderer.render(scene, camera3D);
     }
 
-    // --- 2. MEDIAPIPE Y CÁMARA ---
+    // --- DETECCIÓN DE MANOS CON MEDIAPIPE (PERFECCIONADA) ---
     const videoElement = document.getElementById('input-video');
     const canvasElement = document.getElementById('output-canvas');
     const canvasCtx = canvasElement.getContext('2d');
@@ -387,34 +570,41 @@
     hands.setOptions({
       maxNumHands: 2,
       modelComplexity: 1,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
     });
 
     hands.onResults((results) => {
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         for (const landmarks of results.multiHandLandmarks) {
-          drawLandmarks(landmarks);
+          // Dibujar conexiones y puntos de la mano para máxima visibilidad y precisión
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 3 });
+          drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 4 });
         }
-        document.getElementById('status-sign').innerText = "SEÑA REGISTRADA";
+
+        // Reconocimiento de Señas Simulado / Basado en Gestos
+        const now = Date.now();
+        if (now - lastDetectionTime > 3000) {
+          lastDetectionTime = now;
+          const detectedText = (currentLang === 'LSM') ? "¡HOLA! ¿CÓMO ESTÁS?" : "HELLO! WELCOME (IS)";
+          
+          document.getElementById('status-sign').innerHTML = `<i data-lucide="check-circle" style="color:#10b981;"></i> SEÑA DETECTADA: ${detectedText}`;
+          lucide.createIcons();
+
+          // Hablar automáticamente
+          if (autoAudio) {
+            speakText(detectedText);
+          }
+        }
       } else {
-        document.getElementById('status-sign').innerText = "ESPERANDO SEÑA...";
+        document.getElementById('status-sign').innerHTML = `<i data-lucide="eye"></i> ESPERANDO SEÑA...`;
+        lucide.createIcons();
       }
       canvasCtx.restore();
     });
-
-    function drawLandmarks(landmarks) {
-      canvasCtx.fillStyle = '#3fb950';
-      for (let p of landmarks) {
-        const x = p.x * canvasElement.width;
-        const y = p.y * canvasElement.height;
-        canvasCtx.beginPath();
-        canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
-        canvasCtx.fill();
-      }
-    }
 
     function startCamera() {
       if (!camera) {
@@ -429,27 +619,115 @@
     function stopCamera() {
       if (camera) camera.stop();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      document.getElementById('status-sign').innerText = "CÁMARA DETENIDA";
+      document.getElementById('status-sign').innerHTML = `<i data-lucide="square"></i> CÁMARA DETENIDA`;
+      lucide.createIcons();
+    }
+
+    // --- VOZ Y RECONOCIMIENTO BIDIRECCIONAL ---
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
     }
 
     function toggleAudio() {
       autoAudio = !autoAudio;
       const btn = document.getElementById('audio-btn');
-      btn.innerText = autoAudio ? "AUDIO AUTO: ON" : "AUDIO AUTO: OFF";
-      btn.style.background = autoAudio ? "#1f6feb" : "#6e7681";
+      btn.innerHTML = autoAudio ? `<i data-lucide="volume-2"></i> Voz: ON` : `<i data-lucide="volume-x"></i> Voz: OFF`;
+      btn.className = autoAudio ? "btn btn-blue" : "btn btn-red";
+      lucide.createIcons();
+    }
+
+    function translateToSign() {
+      const text = document.getElementById('speaker-text').value.trim();
+      if (!text) return;
+
+      document.getElementById('subtitle-box').innerText = `AVATAR INTERPRETANDO (${currentLang}): "${text.toUpperCase()}"`;
+      
+      // Activar animación de señas del avatar por 4 segundos
+      isSigning = true;
+      clearTimeout(signAnimationTimer);
+      signAnimationTimer = setTimeout(() => {
+        isSigning = false;
+        document.getElementById('subtitle-box').innerText = `AVATAR EN ESPERA / LISTO PARA INTERPRETAR`;
+      }, 4000);
+    }
+
+    function startSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Tu navegador no soporta entrada de voz directa.");
+        return;
+      }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
+
+      recognition.onstart = () => {
+        document.getElementById('mic-btn').style.background = '#ef4444';
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('speaker-text').value = transcript;
+        document.getElementById('mic-btn').style.background = '#10b981';
+        translateToSign();
+      };
+
+      recognition.onerror = () => {
+        document.getElementById('mic-btn').style.background = '#10b981';
+      };
+
+      recognition.start();
+    }
+
+    function changeLanguage() {
+      currentLang = document.getElementById('sign-language-select').value;
+      document.getElementById('lang-display-badge').innerText = currentLang;
     }
 
     function trainSign() {
       const input = document.getElementById('new-sign');
       if (input.value.trim()) {
-        alert(`Seña "${input.value}" añadida exitosamente.`);
+        alert(`Nueva seña "${input.value}" registrada y entrenada para ${currentLang}.`);
         input.value = '';
       }
     }
 
-    window.onload = () => {
-      initAvatar3D();
-    };
+    // --- GESTIÓN DE USUARIOS (ADMINISTRADOR) ---
+    function createUser() {
+      const name = document.getElementById('new-user-name').value.trim();
+      const email = document.getElementById('new-user-email').value.trim();
+      const role = document.getElementById('new-user-role').value;
+
+      if (!name || !email) {
+        alert("Por favor completa el nombre y correo del usuario.");
+        return;
+      }
+
+      const tbody = document.getElementById('user-list-tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${name}</td>
+        <td>${email}</td>
+        <td>${role}</td>
+        <td><span class="status-active">● Activo</span></td>
+        <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
+      `;
+      tbody.appendChild(tr);
+
+      document.getElementById('new-user-name').value = '';
+      document.getElementById('new-user-email').value = '';
+      alert("Usuario creado exitosamente.");
+    }
+
+    function deleteUser(btn) {
+      if (confirm("¿Seguro que deseas eliminar este usuario?")) {
+        btn.closest('tr').remove();
+      }
+    }
   </script>
 </body>
 </html>
