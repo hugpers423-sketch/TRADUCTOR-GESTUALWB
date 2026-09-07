@@ -3,86 +3,319 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Traductor Bidireccional con Avatar 3D</title>
+  <title>Traductor Inclusivo Bidireccional</title>
+  
   <style>
     :root {
       --bg: #0f172a;
       --card: #1e293b;
-      --accent: #2563eb;
-      --success: #16a34a;
+      --primary: #2563eb;
+      --accent: #10b981;
       --danger: #dc2626;
       --text: #f8fafc;
       --muted: #94a3b8;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
     body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
     
-    header { background: var(--card); padding: 1rem; text-align: center; border-bottom: 1px solid #334155; }
-    header h1 { font-size: 1.2rem; font-weight: 700; }
+    header { background: #111d33; padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    header h1 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
 
-    main { flex: 1; display: grid; grid-template-columns: 1fr; gap: 1rem; padding: 1rem; max-width: 1200px; margin: 0 auto; width: 100%; }
-    @media (min-width: 850px) { main { grid-template-columns: 1fr 1fr; } }
+    .nav-btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .nav-btn.btn-admin { background: #7e22ce; }
+    .nav-btn.btn-danger { background: var(--danger); }
 
-    .card { background: var(--card); border-radius: 12px; border: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .card-title { font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .view { display: none; padding: 1rem; max-width: 1300px; margin: 0 auto; width: 100%; }
+    .view.active { display: block; }
 
-    .viewport { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .grid-main { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 900px) { .grid-main { grid-template-columns: 380px 1fr; } }
+
+    .card { background: var(--card); border-radius: 12px; border: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .viewport { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid #475569; }
     video { display: none; }
     canvas { width: 100%; height: 100%; object-fit: cover; }
+    .badge-lan { position: absolute; top: 10px; right: 10px; background: #166534; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; }
 
-    .caption-box { background: #020617; border-radius: 8px; padding: 1rem; text-align: center; border: 2px solid #38bdf8; min-height: 70px; display: flex; align-items: center; justify-content: center; }
-    .caption-text { font-size: 1.4rem; font-weight: 800; color: #38bdf8; letter-spacing: 0.03em; }
+    #avatar-container { width: 100%; height: 420px; background: #090d16; border-radius: 8px; overflow: hidden; border: 1px solid #475569; }
 
-    #avatar-container { width: 100%; aspect-ratio: 4/3; background: #090d16; border-radius: 8px; overflow: hidden; border: 1px solid #334155; position: relative; }
+    .caption-box { background: #020617; border-radius: 8px; padding: 0.8rem; border: 1px solid #1e293b; min-height: 55px; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .caption-left { color: #38bdf8; font-size: 1.1rem; font-weight: 800; }
+    .caption-right { color: #4ade80; font-size: 1.1rem; font-weight: 800; }
 
-    .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; }
-    button { padding: 0.75rem 0.5rem; border: none; border-radius: 6px; background: var(--accent); color: white; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-    button:active { transform: scale(0.98); }
-    button.btn-success { background: var(--success); }
-    button.btn-danger { background: var(--danger); }
+    .controls-row { display: flex; gap: 0.5rem; }
+    button.btn-act { flex: 1; padding: 0.6rem; border: none; border-radius: 6px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    button.btn-green { background: #059669; }
+    button.btn-red { background: var(--danger); }
+
+    .input-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .input-group input { flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; }
+
+    .auth-card { max-width: 400px; margin: 3rem auto; background: var(--card); padding: 2rem; border-radius: 12px; border: 1px solid #334155; }
+    input { width: 100%; padding: 0.6rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; }
+    select { background: #0f172a; color: white; border: 1px solid #475569; padding: 0.6rem; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }
   </style>
+
+  <!-- CDNs Necesarios cargados antes de la aplicación -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
+
   <header>
-    <h1>🖐️ Comunicador Inclusivo: Señas ⇆ Avatar 3D y Voz</h1>
+    <h1>🤟 Traductor de Señas ⇆ Voz y Texto (Bidireccional)</h1>
+    <div style="display: flex; align-items: center; gap: 0.8rem;">
+      <span id="role-badge" style="font-size: 0.85rem; color: #38bdf8; font-weight: 600;">Invitado</span>
+      <button id="btn-nav-admin" class="nav-btn btn-admin" style="display: none;">Panel Admin</button>
+      <button id="btn-nav-login" class="nav-btn">Iniciar Sesión</button>
+      <button id="btn-nav-logout" class="nav-btn btn-danger" style="display: none;">Salir</button>
+    </div>
   </header>
 
-  <main>
-    <!-- MÓDULO 1: SEÑAS A TEXTO/AUDIO -->
-    <div class="card">
-      <span class="card-title">1. Entrada de Señas (Persona Sorda)</span>
-      <div class="viewport">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="output_canvas"></canvas>
+  <!-- PANTALLA PRINCIPAL TRADUCTOR -->
+  <div id="view-translator" class="view active">
+    <div class="grid-main">
+      
+      <!-- Entrada Señas (Cámara a Voz y Texto) -->
+      <div class="card">
+        <div class="card-header">
+          <span>1. ENTRADA DE SEÑAS (PERSONA SORDA)</span>
+        </div>
+        <div class="viewport">
+          <video id="webcam"></video>
+          <canvas id="output_canvas"></canvas>
+          <div class="badge-lan">● LSM</div>
+        </div>
+        <div class="caption-box">
+          <span id="caption-left" class="caption-left">ESPERANDO CÁMARA...</span>
+        </div>
+        <div class="controls-row">
+          <button id="btn-start" class="btn-act">INICIAR CÁMARA</button>
+          <button id="btn-stop" class="btn-act btn-red">DETENER</button>
+        </div>
+        <div style="margin-top: 0.5rem; border-top: 1px solid #334155; padding-top: 0.5rem;">
+          <input type="text" id="new-sign-name" placeholder="Ej: Hola / Gracias / Ayuda" style="margin-bottom:0.5rem; padding: 0.5rem; width:100%;" />
+          <button id="btn-save-sign" class="btn-act btn-green" style="width:100%;">ENTRENAR SEÑA ACTUAL ➕</button>
+        </div>
       </div>
 
-      <div class="caption-box">
-        <span id="caption-text" class="caption-text">ESPERANDO CÁMARA...</span>
-      </div>
+      <!-- Salida Avatar Humano (Voz a Avatar 3D y Texto) -->
+      <div class="card">
+        <div class="card-header">
+          <span>2. TRADUCTOR A AVATAR HUMANO (PARA PERSONA SORDA)</span>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            🌐 
+            <select id="select-lang-system">
+              <option value="LSM">Señas Internacional / LSM</option>
+              <option value="LSE">LSE Española</option>
+            </select>
+          </div>
+        </div>
 
-      <div class="btn-grid">
-        <button id="btn-start">INICIAR CÁMARA</button>
-        <button id="btn-auto-speak" class="btn-success">AUDIO AUTO: ON 🔊</button>
-        <button id="btn-stop" class="btn-danger">DETENER</button>
+        <div id="avatar-container"></div>
+
+        <div class="caption-box">
+          <span id="caption-right" class="caption-right">AVATAR INTERPRETANDO: ¡HOLA! ¿CÓMO ESTÁS?</span>
+        </div>
+
+        <div class="input-group">
+          <input type="text" id="text-to-avatar" placeholder="Ingresa texto o presiona para hablar..." />
+          <button id="btn-speak-mic" class="btn-act btn-green" style="max-width: 200px;">INGRESAR / HABLAR 🎙️</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- MÓDULO 2: AVATAR 3D -->
-    <div class="card">
-      <span class="card-title">2. Traductor a Avatar 3D (Para Persona Sorda)</span>
-      <div id="avatar-container"></div>
-
-      <div class="caption-box">
-        <span id="speech-caption" class="caption-text" style="color: #4ade80;">PRESIONA HABLAR...</span>
-      </div>
-
-      <div class="btn-grid">
-        <button id="btn-listen" class="btn-success">HABLAR POR MICRÓFONO 🎙️</button>
-      </div>
+  <!-- PANTALLA LOGIN -->
+  <div id="view-login" class="view">
+    <div class="auth-card">
+      <h3 style="margin-bottom: 1.2rem; text-align: center;">Ingreso al Sistema</h3>
+      <input type="text" id="login-user" placeholder="Usuario (ej: admin o cliente1)" />
+      <input type="password" id="login-pass" placeholder="Contraseña" />
+      <button id="btn-do-login" class="btn-act" style="width: 100%;">Ingresar</button>
     </div>
-  </main>
+  </div>
 
-  <script type="module" src="./app.js"></script>
+  <!-- PANTALLA PANEL ADMINISTRADOR -->
+  <div id="view-admin" class="view">
+    <div class="card">
+      <div class="card-header">
+        <span>ADMINISTRACIÓN: GESTIÓN DE USUARIOS DE CLIENTES</span>
+      </div>
+      <form id="form-create-user" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-top: 1rem;">
+        <input type="text" id="new-username" placeholder="Nombre de usuario" required />
+        <input type="password" id="new-password" placeholder="Contraseña" required />
+        <select id="new-role">
+          <option value="cliente">Cliente</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button type="submit" class="btn-act btn-green">Crear Usuario</button>
+      </form>
+
+      <table>
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Acciones</th></tr></thead>
+        <tbody id="users-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Lógica de la Aplicación -->
+  <script>
+    // Referencias DOM
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('output_canvas');
+    const ctx = canvas.getContext('2d');
+    const captionLeft = document.getElementById('caption-left');
+    const captionRight = document.getElementById('caption-right');
+    
+    // Controles MediaPipe y Entrenamiento
+    const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
+    const btnSaveSign = document.getElementById('btn-save-sign');
+    const newSignNameInput = document.getElementById('new-sign-name');
+    
+    // Controles Voz y Avatar
+    const btnSpeakMic = document.getElementById('btn-speak-mic');
+    const textToAvatarInput = document.getElementById('text-to-avatar');
+    
+    // Vistas y Auth
+    const views = { translator: document.getElementById('view-translator'), login: document.getElementById('view-login'), admin: document.getElementById('view-admin') };
+    const authElements = { badge: document.getElementById('role-badge'), btnLogin: document.getElementById('btn-nav-login'), btnAdmin: document.getElementById('btn-nav-admin'), btnLogout: document.getElementById('btn-nav-logout') };
+    const usersTableBody = document.getElementById('users-table-body');
+    const loginUser = document.getElementById('login-user');
+    const loginPass = document.getElementById('login-pass');
+    
+    // Estados
+    let cameraInstance = null;
+    let webcamRunning = false;
+    let currentLandmarks = null;
+    let lastSpokenGesture = "";
+    
+    // Base de Datos de Usuarios y Señas (Persistente)
+    let usersDB = JSON.parse(localStorage.getItem('app_users_db')) || [{ username: 'admin', pass: '1234', role: 'admin' }, { username: 'cliente1', pass: '1234', role: 'cliente' }];
+    let signsDB = JSON.parse(localStorage.getItem('app_signs_db')) || [];
+    let currentUser = null;
+
+    // 1. Detección de Manos (MediaPipe)
+    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+    hands.onResults((results) => {
+      ctx.save(); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        currentLandmarks = results.multiHandLandmarks[0];
+        const matchedSign = recognizeSign(currentLandmarks);
+        if (matchedSign) {
+          captionLeft.innerText = matchedSign;
+          if (matchedSign !== lastSpokenGesture && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(matchedSign); utterance.lang = "es-ES";
+            window.speechSynthesis.speak(utterance);
+            lastSpokenGesture = matchedSign;
+          }
+        } else { captionLeft.innerText = "ESCANEAR SEÑAS"; }
+      } else { currentLandmarks = null; captionLeft.innerText = "BUSCANDO MANO..."; } ctx.restore();
+    });
+
+    btnStart.onclick = () => { if (cameraInstance) { cameraInstance.start(); } else { cameraInstance = new Camera(video, { onFrame: async () => { canvas.width = video.videoWidth; canvas.height = video.videoHeight; await hands.send({ image: video }); }, width: 640, height: 480 }); cameraInstance.start(); } captionLeft.innerText = "ACTIVANDO CÁMARA..."; };
+    btnStop.onclick = () => { if (cameraInstance) cameraInstance.stop(); captionLeft.innerText = "CÁMARA DETENIDA."; };
+
+    // Lógica para entrenar y guardar nuevas señas
+    btnSaveSign.onclick = () => {
+      const signName = newSignNameInput.value.trim().toUpperCase();
+      if (currentLandmarks && signName) {
+        signsDB.push({ name: signName, landmarks: currentLandmarks });
+        localStorage.setItem('app_signs_db', JSON.stringify(signsDB));
+        alert(`Seña '${signName}' entrenada con éxito.`);
+        newSignNameInput.value = "";
+      } else { alert("Error: Asegúrate de que la cámara reconozca tu mano y escribe el nombre de la seña."); }
+    };
+
+    function recognizeSign(landmarks) {
+      if (signsDB.length === 0) return null;
+      let minDistance = Infinity; let matchedName = null;
+      for (const entry of signsDB) {
+        let dist = 0; for (let i = 0; i < landmarks.length; i++) { dist += Math.hypot(landmarks[i].x - entry.landmarks[i].x, landmarks[i].y - entry.landmarks[i].y); }
+        if (dist < minDistance && dist < 1.0) { minDistance = dist; matchedName = entry.name; }
+      }
+      return matchedName;
+    }
+
+    // 2. Motor 3D del Avatar Humano
+    const avatarContainer = document.getElementById("avatar-container");
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x090d16);
+    const camera3D = new THREE.PerspectiveCamera(45, avatarContainer.clientWidth / avatarContainer.clientHeight, 0.1, 1000);
+    camera3D.position.set(0, 1.4, 2.5);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
+    avatarContainer.appendChild(renderer.domElement);
+    const light1 = new THREE.AmbientLight(0xffffff, 0.9); scene.add(light1);
+    const light2 = new THREE.DirectionalLight(0xffffff, 0.8); light2.position.set(2, 4, 3); scene.add(light2);
+
+    let avatarModel, rightArm, leftArm;
+    const loader = new THREE.GLTFLoader();
+    loader.load("https://models.readyplayer.me/64b024412230018d9a244433.glb", (gltf) => {
+      avatarModel = gltf.scene; avatarModel.position.y = -0.3; scene.add(avatarModel);
+      avatarModel.traverse((child) => { if (child.isBone) { if (child.name.includes("RightArm")) rightArm = child; if (child.name.includes("LeftArm")) leftArm = child; } });
+    });
+    function animate() { requestAnimationFrame(animate); renderer.render(scene, camera3D); } animate();
+
+    // Traducción de Voz a Señas de Avatar
+    function triggerAvatarSign(phrase) {
+      captionRight.innerText = `AVATAR TRADUCIENDO GESTO: ${phrase.toUpperCase()}`;
+      if (!avatarModel) return;
+      if (rightArm) rightArm.rotation.x = -1.2; if (leftArm) leftArm.rotation.x = -1.0; // Movimiento simple
+      setTimeout(() => { if (rightArm) rightArm.rotation.x = 0; if (leftArm) leftArm.rotation.x = 0; }, 2000);
+    }
+
+    // Reconocimiento de Voz del Oyente
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition(); recognition.lang = "es-ES";
+      btnSpeakMic.onclick = () => { if (textToAvatarInput.value) { triggerAvatarSign(textToAvatarInput.value); textToAvatarInput.value = ""; } else { recognition.start(); captionRight.innerText = "ESCUCHANDO TU VOZ..."; } };
+      recognition.onresult = (e) => triggerAvatarSign(e.results[0][0].transcript);
+    }
+
+    // 3. Sistema de Vistas, Login y Administración de Usuarios
+    function setView(viewName) { for (const v in views) { views[v].classList.remove('active'); } views[viewName].classList.add('active'); }
+    function updateUI() {
+      if (currentUser) {
+        authElements.badge.innerText = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
+        authElements.btnLogin.style.display = 'none'; authElements.btnLogout.style.display = 'inline-block';
+        authElements.btnAdmin.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+      } else { authElements.badge.innerText = "Invitado"; authElements.btnLogin.style.display = 'inline-block'; authElements.btnLogout.style.display = 'none'; authElements.btnAdmin.style.display = 'none'; }
+    }
+    
+    authElements.btnLogin.onclick = () => setView('login');
+    authElements.btnLogout.onclick = () => { currentUser = null; updateUI(); setView('translator'); };
+    authElements.btnAdmin.onclick = () => { renderAdminTable(); setView('admin'); };
+    
+    document.getElementById('btn-do-login').onclick = () => {
+      const match = usersDB.find(x => x.username === loginUser.value && x.pass === loginPass.value);
+      if (match) { currentUser = match; updateUI(); setView(match.role === 'admin' ? 'admin' : 'translator'); loginUser.value = ""; loginPass.value = ""; }
+      else { alert('Credenciales incorrectas.'); }
+    };
+
+    function renderAdminTable() {
+      usersTableBody.innerHTML = '';
+      usersDB.forEach((u, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td><td><strong>${u.role}</strong></td><td><button class="nav-btn btn-danger" onclick="deleteUser(${index})">Eliminar</button></td>`;
+        usersTableBody.appendChild(tr);
+      });
+    }
+
+    window.deleteUser = (index) => { usersDB.splice(index, 1); localStorage.setItem('app_users_db', JSON.stringify(usersDB)); renderAdminTable(); };
+    document.getElementById('form-create-user').onsubmit = (e) => {
+      e.preventDefault();
+      const newU = document.getElementById('new-username'); const newP = document.getElementById('new-password'); const newR = document.getElementById('new-role');
+      usersDB.push({ username: newU.value, pass: newP.value, role: newR.value }); localStorage.setItem('app_users_db', JSON.stringify(usersDB)); e.target.reset(); renderAdminTable();
+    };
+  </script>
 </body>
 </html>
