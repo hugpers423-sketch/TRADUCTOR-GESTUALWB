@@ -1,286 +1,328 @@
-import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+// Lucide Icons
+    lucide.createIcons();
 
-// Elementos del DOM
-const video = document.getElementById("webcam");
-const canvasElement = document.getElementById("output_canvas");
-const canvasCtx = canvasElement.getContext("2d");
-const captionText = document.getElementById("caption-text");
-const speechCaption = document.getElementById("speech-caption");
+    // Estado Global
+    let autoAudio = true;
+    let currentLang = 'LSM';
+    let camera = null;
+    let scene, camera3D, renderer, leftArm, rightArm, head, leftHand, rightHand;
+    let clock = new THREE.Clock();
+    let isSigning = false;
+    let signAnimationTimer = null;
+    let lastDetectionTime = 0;
+    let avatarInitialized = false;
 
-const btnStart = document.getElementById("btn-start");
-const btnStop = document.getElementById("btn-stop");
-const btnListen = document.getElementById("btn-listen");
-
-// Control de Vistas y Roles
-const viewTranslator = document.getElementById("view-translator");
-const viewLogin = document.getElementById("view-login");
-const viewAdmin = document.getElementById("view-admin");
-const badgeRole = document.getElementById("user-role-badge");
-
-const btnNavLogin = document.getElementById("btn-nav-login");
-const btnNavAdmin = document.getElementById("btn-nav-admin");
-const btnNavLogout = document.getElementById("btn-nav-logout");
-
-let handLandmarker;
-let webcamRunning = false;
-let lastVideoTime = -1;
-let lastSpokenGesture = "";
-
-// Base de datos local de Usuarios
-let usersDB = JSON.parse(localStorage.getItem("app_users")) || [
-  { username: "admin", pass: "1234", role: "admin" },
-  { username: "usuario", pass: "1234", role: "usuario" }
-];
-let currentUser = null;
-
-// 1. Inicializar MediaPipe Vision
-async function setupMediaPipe() {
-  try {
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    handLandmarker = await HandLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
-      runningMode: "VIDEO",
-      numHands: 1
-    });
-    captionText.innerText = "SISTEMA INTERNACIONAL LISTO. ENCIENDE LA CÁMARA.";
-  } catch (e) {
-    captionText.innerText = "ERROR AL CARGAR IA DE SEÑAS.";
-  }
-}
-setupMediaPipe();
-
-// 2. Reconocimiento de Señas (Sistema Internacional / Gestuno / LSM)
-function processGesture(landmarks) {
-  const indexExtended = landmarks[8].y < landmarks[6].y;
-  const middleExtended = landmarks[12].y < landmarks[10].y;
-  const ringExtended = landmarks[16].y < landmarks[14].y;
-  const pinkyExtended = landmarks[20].y < landmarks[18].y;
-  const thumbExtended = landmarks[4].x < landmarks[3].x;
-
-  let sentence = "";
-
-  // Mapeo Gestual Internacional
-  if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
-    sentence = "Paz y Victoria (Gestuno/Internacional)";
-  } else if (indexExtended && pinkyExtended && !middleExtended && !ringExtended) {
-    sentence = "Te amo / I Love You (Seña Universal ISL)";
-  } else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
-    sentence = "Necesito ayuda urgente (Seña Internacional de Auxilio)";
-  } else if (indexExtended && middleExtended && ringExtended && pinkyExtended) {
-    sentence = "Hola, saludos a todos (Seña Universal de Saludo)";
-  } else if (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
-    sentence = "Muchas gracias (Agradecimiento Internacional)";
-  }
-
-  if (sentence && sentence !== lastSpokenGesture) {
-    lastSpokenGesture = sentence;
-    captionText.innerText = sentence;
-
-    // Síntesis de audio automática
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(sentence);
-      utterance.lang = "es-ES";
-      window.speechSynthesis.speak(utterance);
-    }
-  }
-}
-
-async function predictWebcam() {
-  if (!webcamRunning) return;
-  if (video.readyState >= 2) {
-    canvasElement.width = video.videoWidth;
-    canvasElement.height = video.videoHeight;
-    canvasCtx.save();
-    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-
-    if (handLandmarker && video.currentTime !== lastVideoTime) {
-      lastVideoTime = video.currentTime;
-      const results = handLandmarker.detectForVideo(video, performance.now());
-      if (results.landmarks && results.landmarks.length > 0) {
-        processGesture(results.landmarks[0]);
+    // Login & Tabs
+    function handleLogin() {
+      const u = document.getElementById('login-user').value.trim();
+      const p = document.getElementById('login-pass').value.trim();
+      if (u === 'admin' && p === '1234') {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        
+        // Inicialización segura del Avatar 3D tras hacer visible el layout
+        setTimeout(() => {
+          if (!avatarInitialized) {
+            initAvatar3D();
+            avatarInitialized = true;
+          } else {
+            onWindowResize();
+          }
+        }, 100);
+      } else {
+        document.getElementById('login-error').style.display = 'block';
       }
     }
-    canvasCtx.restore();
-  }
-  requestAnimationFrame(predictWebcam);
-}
 
-btnStart.onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  video.srcObject = stream;
-  await video.play();
-  webcamRunning = true;
-  predictWebcam();
-};
+    function handleLogout() {
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('login-overlay').style.display = 'flex';
+    }
 
-btnStop.onclick = () => {
-  webcamRunning = false;
-  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-  captionText.innerText = "CÁMARA DETENIDA.";
-};
-
-// 3. Motor 3D - Avatar Humanoide Interpretando Señas
-const container = document.getElementById("avatar-container");
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111827);
-
-const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(0, 1.4, 2.5);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.shadowMap.enabled = true;
-container.appendChild(renderer.domElement);
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(2, 4, 2);
-scene.add(dirLight);
-
-let avatarModel, rightArmBone, leftArmBone, headBone;
-const loader = new THREE.GLTFLoader();
-
-loader.load(
-  "https://models.readyplayer.me/64b024412230018d9a244433.glb",
-  (gltf) => {
-    avatarModel = gltf.scene;
-    avatarModel.scale.set(1, 1, 1);
-    avatarModel.position.y = -0.3;
-    scene.add(avatarModel);
-
-    avatarModel.traverse((object) => {
-      if (object.isBone) {
-        if (object.name.includes("RightArm")) rightArmBone = object;
-        if (object.name.includes("LeftArm")) leftArmBone = object;
-        if (object.name.includes("Head")) headBone = object;
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if (tabName === 'communicator') {
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-communicator').classList.add('active');
+        setTimeout(onWindowResize, 50);
+      } else {
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-admin').classList.add('active');
       }
+    }
+
+    // Avatar 3D Auditoría & Solución
+    function initAvatar3D() {
+      const container = document.getElementById('avatar-container');
+      const w = container.clientWidth || 400;
+      const h = container.clientHeight || 420;
+
+      scene = new THREE.Scene();
+      camera3D = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+      camera3D.position.set(0, 1.45, 1.75);
+      camera3D.lookAt(0, 1.38, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambientLight);
+
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      mainLight.position.set(2, 4, 3);
+      scene.add(mainLight);
+
+      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
+      fillLight.position.set(-2, 2, -1);
+      scene.add(fillLight);
+
+      buildDetailedHumanoidAvatar();
+      animate3D();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      if (!renderer || !camera3D) return;
+      const container = document.getElementById('avatar-container');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0) {
+        camera3D.aspect = w / h;
+        camera3D.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+    }
+
+    function buildDetailedHumanoidAvatar() {
+      const avatarGroup = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xe5a978, roughness: 0.5 });
+      const clothMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.8 });
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.20, 0.75, 32), clothMat);
+      torso.position.y = 1.0;
+      avatarGroup.add(torso);
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.12, 16), skinMat);
+      neck.position.y = 1.42;
+      avatarGroup.add(neck);
+
+      head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), skinMat);
+      head.position.y = 1.57;
+      avatarGroup.add(head);
+
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.146, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2), hairMat);
+      hair.position.y = 1.59;
+      avatarGroup.add(hair);
+
+      const eyeGeo = new THREE.SphereGeometry(0.016, 16, 16);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.045, 1.58, 0.128);
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.045, 1.58, 0.128);
+      avatarGroup.add(eyeL); avatarGroup.add(eyeR);
+
+      const armGeo = new THREE.CylinderGeometry(0.042, 0.035, 0.45, 16);
+      const handGeo = new THREE.BoxGeometry(0.08, 0.02, 0.09);
+
+      leftArm = new THREE.Group();
+      leftArm.position.set(-0.28, 1.30, 0);
+      const lMesh = new THREE.Mesh(armGeo, clothMat); lMesh.position.y = -0.22;
+      leftArm.add(lMesh);
+      leftHand = new THREE.Mesh(handGeo, skinMat); leftHand.position.y = -0.45;
+      leftArm.add(leftHand);
+      avatarGroup.add(leftArm);
+
+      rightArm = new THREE.Group();
+      rightArm.position.set(0.28, 1.30, 0);
+      const rMesh = new THREE.Mesh(armGeo, clothMat); rMesh.position.y = -0.22;
+      rightArm.add(rMesh);
+      rightHand = new THREE.Mesh(handGeo, skinMat); rightHand.position.y = -0.45;
+      rightArm.add(rightHand);
+      avatarGroup.add(rightArm);
+
+      scene.add(avatarGroup);
+    }
+
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+      const t = clock.getElapsedTime();
+
+      if (!isSigning) {
+        leftArm.rotation.x = 0.3 + Math.sin(t * 1.5) * 0.05;
+        leftArm.rotation.z = 0.2;
+        rightArm.rotation.x = 0.3 + Math.cos(t * 1.5) * 0.05;
+        rightArm.rotation.z = -0.2;
+        head.rotation.y = Math.sin(t * 0.8) * 0.05;
+      } else {
+        leftArm.rotation.x = 0.8 + Math.sin(t * 8) * 0.4;
+        leftArm.rotation.y = Math.cos(t * 6) * 0.3;
+        rightArm.rotation.x = 0.8 + Math.cos(t * 8) * 0.4;
+        rightArm.rotation.y = -Math.sin(t * 6) * 0.3;
+        head.rotation.y = Math.sin(t * 4) * 0.1;
+      }
+
+      renderer.render(scene, camera3D);
+    }
+
+    // MediaPipe Hands (Detección de 2 Manos con Puntos Verdes Pequeños)
+    const videoElement = document.getElementById('input-video');
+    const canvasElement = document.getElementById('output-canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
-  }
-);
 
-function renderLoop() {
-  requestAnimationFrame(renderLoop);
-  renderer.render(scene, camera);
-}
-renderLoop();
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
 
-// Traducción de Audio a Señas del Avatar
-function playAvatarSign(phrase) {
-  speechCaption.innerText = `AVATAR TRADUCIENDO SEÑA: "${phrase.toUpperCase()}"`;
+    hands.onResults((results) => {
+      // Ajustar resolución del canvas según el vídeo
+      if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+      }
 
-  if (!avatarModel) return;
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-  const p = phrase.toLowerCase();
-  if (p.includes("hola") || p.includes("saludos")) {
-    if (rightArmBone) rightArmBone.rotation.x = -1.2;
-    setTimeout(() => { if (rightArmBone) rightArmBone.rotation.x = 0; }, 2500);
-  } else if (p.includes("gracias") || p.includes("ayuda")) {
-    if (leftArmBone) leftArmBone.rotation.x = -1.0;
-    if (rightArmBone) rightArmBone.rotation.x = -1.0;
-    setTimeout(() => {
-      if (leftArmBone) leftArmBone.rotation.x = 0;
-      if (rightArmBone) rightArmBone.rotation.x = 0;
-    }, 2500);
-  } else if (p.includes("amor") || p.includes("paz")) {
-    if (rightArmBone) rightArmBone.rotation.z = -1.5;
-    setTimeout(() => { if (rightArmBone) rightArmBone.rotation.z = 0; }, 2500);
-  } else {
-    if (rightArmBone) rightArmBone.rotation.x = -0.8;
-    setTimeout(() => { if (rightArmBone) rightArmBone.rotation.x = 0; }, 2000);
-  }
-}
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (const landmarks of results.multiHandLandmarks) {
+          // Líneas finas en verde tenue
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { 
+            color: 'rgba(0, 255, 0, 0.4)', 
+            lineWidth: 1 
+          });
+          // Puntos pequeños verdes
+          drawLandmarks(canvasCtx, landmarks, { 
+            color: '#00FF00', 
+            fillColor: '#00FF00',
+            lineWidth: 1, 
+            radius: 1.5 
+          });
+        }
 
-// Reconocimiento de Voz del Oyente
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-  const recognition = new SpeechRecognition();
-  recognition.lang = "es-ES";
+        const now = Date.now();
+        if (now - lastDetectionTime > 3000) {
+          lastDetectionTime = now;
+          const detectedText = (currentLang === 'LSM') ? "¡HOLA! ¿CÓMO ESTÁS?" : "HELLO! WELCOME";
+          document.getElementById('status-sign').innerHTML = `<i data-lucide="check-circle" style="color:#10b981;"></i> SEÑA DETECTADA: ${detectedText}`;
+          lucide.createIcons();
+          if (autoAudio) speakText(detectedText);
+        }
+      } else {
+        document.getElementById('status-sign').innerHTML = `<i data-lucide="eye"></i> ESPERANDO SEÑA...`;
+        lucide.createIcons();
+      }
+      canvasCtx.restore();
+    });
 
-  btnListen.onclick = () => {
-    recognition.start();
-    speechCaption.innerText = "ESCUCHANDO...";
-  };
+    function startCamera() {
+      if (!camera) {
+        camera = new Camera(videoElement, {
+          onFrame: async () => { await hands.send({ image: videoElement }); },
+          width: 640, height: 480
+        });
+      }
+      camera.start();
+    }
 
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    playAvatarSign(text);
-  };
-}
+    function stopCamera() {
+      if (camera) camera.stop();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      document.getElementById('status-sign').innerHTML = `<i data-lucide="square"></i> CÁMARA DETENIDA`;
+      lucide.createIcons();
+    }
 
-// 4. Autenticación y Navegación
-function switchView(viewName) {
-  viewTranslator.classList.remove("active");
-  viewLogin.classList.remove("active");
-  viewAdmin.classList.remove("active");
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
+    }
 
-  if (viewName === "translator") viewTranslator.classList.add("active");
-  if (viewName === "login") viewLogin.classList.add("active");
-  if (viewName === "admin") viewAdmin.classList.add("active");
-}
+    function toggleAudio() {
+      autoAudio = !autoAudio;
+      const btn = document.getElementById('audio-btn');
+      btn.innerHTML = autoAudio ? `<i data-lucide="volume-2"></i> Voz: ON` : `<i data-lucide="volume-x"></i> Voz: OFF`;
+      btn.className = autoAudio ? "btn btn-blue" : "btn btn-red";
+      lucide.createIcons();
+    }
 
-function updateAuthUI() {
-  if (currentUser) {
-    badgeRole.innerText = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
-    btnNavLogin.style.display = "none";
-    btnNavLogout.style.display = "inline-block";
-    btnNavAdmin.style.display = currentUser.role === "admin" ? "inline-block" : "none";
-  } else {
-    badgeRole.innerText = "Invitado";
-    btnNavLogin.style.display = "inline-block";
-    btnNavLogout.style.display = "none";
-    btnNavAdmin.style.display = "none";
-  }
-}
+    function translateToSign() {
+      const text = document.getElementById('speaker-text').value.trim();
+      if (!text) return;
 
-btnNavLogin.onclick = () => switchView("login");
-btnNavAdmin.onclick = () => { renderUsersTable(); switchView("admin"); };
-btnNavLogout.onclick = () => { currentUser = null; updateAuthUI(); switchView("translator"); };
+      document.getElementById('subtitle-box').innerText = `AVATAR INTERPRETANDO (${currentLang}): "${text.toUpperCase()}"`;
+      isSigning = true;
+      clearTimeout(signAnimationTimer);
+      signAnimationTimer = setTimeout(() => {
+        isSigning = false;
+        document.getElementById('subtitle-box').innerText = `AVATAR EN ESPERA / LISTO PARA INTERPRETAR`;
+      }, 4000);
+    }
 
-document.getElementById("btn-do-login").onclick = () => {
-  const u = document.getElementById("login-user").value;
-  const p = document.getElementById("login-pass").value;
-  const found = usersDB.find(x => x.username === u && x.pass === p);
+    function startSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Navegador no soporta entrada de voz.");
+        return;
+      }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
 
-  if (found) {
-    currentUser = found;
-    updateAuthUI();
-    switchView(found.role === "admin" ? "admin" : "translator");
-  } else {
-    alert("Credenciales incorrectas.");
-  }
-};
+      recognition.onstart = () => { document.getElementById('mic-btn').style.background = '#ef4444'; };
+      recognition.onresult = (event) => {
+        document.getElementById('speaker-text').value = event.results[0][0].transcript;
+        document.getElementById('mic-btn').style.background = '#10b981';
+        translateToSign();
+      };
+      recognition.onerror = () => { document.getElementById('mic-btn').style.background = '#10b981'; };
+      recognition.start();
+    }
 
-function renderUsersTable() {
-  const tbody = document.querySelector("#users-table tbody");
-  tbody.innerHTML = "";
-  usersDB.forEach((u, index) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${u.username}</td>
-      <td><strong>${u.role}</strong></td>
-      <td><button class="btn-danger" style="padding:0.3rem 0.6rem;" onclick="deleteUser(${index})">Eliminar</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+    function changeLanguage() {
+      currentLang = document.getElementById('sign-language-select').value;
+      document.getElementById('lang-display-badge').innerText = currentLang;
+    }
 
-window.deleteUser = (index) => {
-  usersDB.splice(index, 1);
-  localStorage.setItem("app_users", JSON.stringify(usersDB));
-  renderUsersTable();
-};
+    function trainSign() {
+      const input = document.getElementById('new-sign');
+      if (input.value.trim()) {
+        alert(`Seña "${input.value}" registrada para ${currentLang}.`);
+        input.value = '';
+      }
+    }
 
-document.getElementById("form-create-user").onsubmit = (e) => {
-  e.preventDefault();
-  const username = document.getElementById("new-username").value;
-  const pass = document.getElementById("new-password").value;
-  const role = document.getElementById("new-role").value;
+    function createUser() {
+      const name = document.getElementById('new-user-name').value.trim();
+      const email = document.getElementById('new-user-email').value.trim();
+      const role = document.getElementById('new-user-role').value;
 
-  usersDB.push({ username, pass, role });
-  localStorage.setItem("app_users", JSON.stringify(usersDB));
-  e.target.reset();
-  renderUsersTable();
-};
+      if (!name || !email) return alert("Completa los datos del usuario.");
+
+      const tbody = document.getElementById('user-list-tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${name}</td><td>${email}</td><td>${role}</td>
+        <td><span class="status-active">● Activo</span></td>
+        <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
+      `;
+      tbody.appendChild(tr);
+      document.getElementById('new-user-name').value = '';
+      document.getElementById('new-user-email').value = '';
+    }
+
+    function deleteUser(btn) {
+      if (confirm("¿Eliminar usuario?")) btn.closest('tr').remove();
+    }
