@@ -3,709 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comunicador Inclusivo Pro - LSM & International Sign</title>
+  <title>Avatar 3D Intérprete - Lengua de Señas</title>
 
   <!-- Three.js + GLTFLoader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- MediaPipe Hands & Drawing Utils -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
   <style>
     :root {
       --bg-primary: #0a0d14;
       --bg-card: #121824;
-      --bg-card-border: #232d3f;
+      --border-color: #232d3f;
       --accent-blue: #2563eb;
       --accent-green: #10b981;
-      --accent-red: #ef4444;
-      --accent-purple: #8b5cf6;
       --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-primary); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-primary); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-    /* LOGIN MODAL */
-    #login-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(10, 13, 20, 0.95);
-      backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .login-box {
-      background: var(--bg-card);
-      border: 1px solid var(--bg-card-border);
-      width: 100%; max-width: 420px;
-      padding: 32px; border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      text-align: center;
-    }
-    .logo-container {
-      width: 80px; height: 80px; margin: 0 auto 16px;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      border-radius: 20px; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
-    }
-    .login-box h2 { font-size: 1.5rem; margin-bottom: 8px; font-weight: 700; }
-    .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
-    .input-group { margin-bottom: 16px; text-align: left; }
-    .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
-    .input-group input {
-      width: 100%; padding: 12px 14px;
-      background: #090c10; border: 1px solid var(--bg-card-border);
-      border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none;
-    }
-    .input-group input:focus { border-color: var(--accent-blue); }
-    .btn-login {
-      width: 100%; padding: 12px; background: linear-gradient(90deg, var(--accent-blue), #3b82f6);
-      color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
-      font-size: 1rem; transition: all 0.2s; margin-top: 8px;
-    }
-    .btn-login:hover { opacity: 0.95; transform: translateY(-1px); }
-
-    /* LAYOUT PRINCIPAL */
     header {
-      background: #0e131f; border-bottom: 1px solid var(--bg-card-border);
-      padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
+      background: #0e131f; border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px; text-align: center;
     }
-    .header-logo { display: flex; align-items: center; gap: 12px; }
-    .header-logo .icon-box {
-      width: 40px; height: 40px; background: var(--accent-blue);
-      border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    }
-    .header-logo h1 { font-size: 1.2rem; font-weight: 700; }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
 
-    .nav-tabs { display: flex; gap: 8px; }
-    .tab-btn {
-      padding: 8px 16px; border-radius: 8px; background: transparent; border: none;
-      color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.2s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .tab-btn.active, .tab-btn:hover { background: var(--bg-card-border); color: #fff; }
-
-    .user-info { display: flex; align-items: center; gap: 12px; }
-    .user-badge {
-      width: 36px; height: 36px; background: var(--accent-purple);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.9rem;
+    main {
+      flex: 1; display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; width: 100%;
     }
 
-    main { padding: 20px; max-width: 1600px; margin: 0 auto; }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* GRID COMUNICADOR */
-    .communicator-grid {
-      display: grid; grid-template-columns: 360px 1fr; gap: 20px;
+    .avatar-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
 
-    .card {
-      background: var(--bg-card); border: 1px solid var(--bg-card-border);
-      border-radius: 12px; padding: 18px; display: flex; flex-direction: column;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    #avatar-container { width: 100%; height: 100%; min-height: 400px; background: radial-gradient(circle, #1e293b 0%, #0a0d14 100%); }
+
+    .subtitle-overlay {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(14, 19, 31, 0.85); border: 1px solid var(--border-color);
+      padding: 12px 24px; border-radius: 30px; font-weight: 700; color: #34d399;
+      backdrop-filter: blur(8px); text-align: center; width: 80%;
     }
 
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bg-card-border);
-    }
-    .card-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
-
-    /* ENTRADA DE SEÑAS */
-    .video-wrapper {
-      position: relative; width: 100%; height: 250px; background: #000;
-      border-radius: 10px; overflow: hidden; margin-bottom: 12px;
-      border: 1px solid var(--bg-card-border);
-    }
-    video, canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .lang-badge {
-      position: absolute; top: 10px; right: 10px; z-index: 10;
-      background: rgba(16, 185, 129, 0.9); color: #fff; font-size: 0.7rem; font-weight: 800;
-      padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(4px);
+    .controls-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px;
     }
 
-    .detection-status {
-      background: #172033; border: 1px solid #2b3854; color: #60a5fa;
-      padding: 12px; border-radius: 8px; text-align: center; font-weight: 700;
-      font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    .control-group label { font-size: 0.85rem; color: #9ca3af; font-weight: 600; }
+
+    input, select, button {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);
+      background: #090c10; color: #fff; font-size: 0.95rem; outline: none;
     }
 
-    .control-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .btn {
-      padding: 10px; border: none; border-radius: 8px; font-weight: 700;
-      font-size: 0.75rem; cursor: pointer; text-transform: uppercase; color: #fff;
-      display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.2s;
+    button {
+      background: var(--accent-blue); border: none; font-weight: 700; cursor: pointer; transition: 0.2s;
     }
+    button:hover { background: #1d4ed8; }
     .btn-green { background: var(--accent-green); }
-    .btn-blue { background: var(--accent-blue); }
-    .btn-red { background: var(--accent-red); }
-    .btn:hover { opacity: 0.9; transform: scale(0.98); }
+    .btn-green:hover { background: #059669; }
 
-    .train-box { display: flex; gap: 8px; }
-    .train-box input {
-      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
-      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
-    }
-
-    /* SECCIÓN OYENTE */
-    .speaker-section {
-      background: #0e131f; border: 1px solid var(--bg-card-border);
-      border-radius: 10px; padding: 14px; margin-top: 14px;
-    }
-    .speaker-title { font-size: 0.8rem; font-weight: 700; color: #a7f3d0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-    .speaker-controls { display: flex; gap: 8px; }
-    .speaker-controls input {
-      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
-      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
-    }
-
-    /* AVATAR 3D PANEL */
-    .avatar-wrapper {
-      position: relative; width: 100%; height: 420px; background: radial-gradient(circle, #1a2336 0%, #090d16 100%);
-      border-radius: 10px; overflow: hidden; border: 1px solid var(--bg-card-border);
-    }
-
-    .subtitle-banner {
-      background: #0e131f; border: 1px solid var(--bg-card-border); border-radius: 10px;
-      margin-top: 14px; padding: 16px; text-align: center; color: #34d399; font-weight: 800;
-      font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .lang-selector {
-      padding: 6px 12px; background: #090c10; border: 1px solid var(--bg-card-border);
-      border-radius: 8px; color: #fff; font-size: 0.8rem; outline: none; cursor: pointer;
-    }
-
-    /* GESTIÓN DE USUARIOS */
-    .admin-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
-    .user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .user-table th, .user-table td {
-      padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--bg-card-border); font-size: 0.9rem;
-    }
-    .user-table th { background: #0e131f; color: var(--text-muted); font-weight: 600; }
-    .status-active { color: var(--accent-green); font-weight: 700; }
+    .dictionary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .dict-btn { background: #172033; border: 1px solid var(--border-color); padding: 10px; font-size: 0.85rem; }
+    .dict-btn:hover { background: var(--accent-blue); }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN MODAL -->
-  <div id="login-overlay">
-    <div class="login-box">
-      <div class="logo-container">
-        <i data-lucide="hand" style="width: 44px; height: 44px; color: #fff;"></i>
-      </div>
-      <h2>Comunicador Inclusivo Pro</h2>
-      <p>Plataforma Inteligente de Traducción Bidireccional de Señas</p>
+  <header>
+    <h1>Traductor Intérprete 3D en Lengua de Señas</h1>
+  </header>
 
-      <div class="input-group">
-        <label>Usuario Administrador</label>
-        <input type="text" id="login-user" value="admin" placeholder="Ingresa usuario">
+  <main>
+    <div class="avatar-card">
+      <div id="avatar-container"></div>
+      <div class="subtitle-overlay" id="subtitles">ESPERANDO ENTRADA DE TEXTO...</div>
+    </div>
+
+    <div class="controls-card">
+      <div class="control-group">
+        <label>Escribe para traducir a señas:</label>
+        <input type="text" id="text-input" placeholder="Ej: Hola, Gracias...">
+        <button onclick="interpretText()">TRADUCIR A SEÑAS</button>
       </div>
-      <div class="input-group">
-        <label>Contraseña</label>
-        <input type="password" id="login-pass" value="1234" placeholder="Ingresa contraseña">
-      </div>
-      <button class="btn-login" onclick="handleLogin()">INICIAR SESIÓN</button>
-      <div id="login-error" style="color: var(--accent-red); font-size: 0.85rem; margin-top: 12px; display: none;">
-        Credenciales incorrectas (Prueba admin / 1234)
+
+      <div class="control-group">
+        <label>Librería de Señas Rápida:</label>
+        <div class="dictionary-grid">
+          <button class="dict-btn" onclick="playAnimation('hola')">👋 HOLA</button>
+          <button class="dict-btn" onclick="playAnimation('gracias')">🙏 GRACIAS</button>
+          <button class="dict-btn" onclick="playAnimation('si')">👍 SÍ</button>
+          <button class="dict-btn" onclick="playAnimation('no')">👎 NO</button>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- APP PRINCIPAL -->
-  <div id="app-container" style="display: none;">
-    <header>
-      <div class="header-logo">
-        <div class="icon-box"><i data-lucide="hand" style="color: #fff;"></i></div>
-        <div>
-          <h1>Comunicador Inclusivo Pro</h1>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Traducción LSM & Lengua de Señas Internacional</span>
-        </div>
-      </div>
-
-      <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('communicator')">
-          <i data-lucide="message-square"></i> Traductor Bidireccional
-        </button>
-        <button class="tab-btn" onclick="switchTab('admin')">
-          <i data-lucide="users"></i> Gestión de Usuarios
-        </button>
-      </div>
-
-      <div class="user-info">
-        <span style="font-size: 0.85rem; font-weight: 600;" id="current-user-name">Administrador</span>
-        <div class="user-badge">A</div>
-        <button class="btn btn-red" style="padding: 6px 12px;" onclick="handleLogout()"><i data-lucide="log-out"></i></button>
-      </div>
-    </header>
-
-    <main>
-      <!-- TAB 1: COMUNICADOR BIDIRECCIONAL -->
-      <div id="tab-communicator" class="tab-content active">
-        <div class="communicator-grid">
-          
-          <!-- PANEL IZQUIERDO: SEÑAS -> VOZ/TEXTO -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">1. Captura de Señas (Persona Sorda)</span>
-            </div>
-
-            <div class="video-wrapper">
-              <span class="lang-badge" id="lang-display-badge">LSM</span>
-              <video id="input-video" playsinline></video>
-              <canvas class="overlay" id="output-canvas"></canvas>
-            </div>
-
-            <div class="detection-status" id="status-sign">
-              <i data-lucide="eye"></i> ESPERANDO SEÑA...
-            </div>
-
-            <div class="control-btns">
-              <button class="btn btn-green" onclick="startCamera()"><i data-lucide="camera"></i> Iniciar</button>
-              <button class="btn btn-blue" id="audio-btn" onclick="toggleAudio()"><i data-lucide="volume-2"></i> Voz: ON</button>
-              <button class="btn btn-red" onclick="stopCamera()"><i data-lucide="square"></i> Parar</button>
-            </div>
-
-            <div class="train-box">
-              <input type="text" id="new-sign" placeholder="Entrenar nueva seña...">
-              <button class="btn btn-green" onclick="trainSign()"><i data-lucide="plus"></i></button>
-            </div>
-
-            <div class="speaker-section">
-              <div class="speaker-title"><i data-lucide="mic"></i> Persona Oyente (Escribir o Hablar)</div>
-              <div class="speaker-controls">
-                <input type="text" id="speaker-text" placeholder="Escribe un mensaje para traducir a señas...">
-                <button class="btn btn-blue" onclick="translateToSign()"><i data-lucide="send"></i></button>
-                <button class="btn btn-green" id="mic-btn" onclick="startSpeechRecognition()"><i data-lucide="mic"></i></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- PANEL DERECHO: AVATAR 3D INTERPRETE -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">2. Avatar Intérprete Humano 3D</span>
-              <div>
-                <select class="lang-selector" id="sign-language-select" onchange="changeLanguage()">
-                  <option value="LSM">LSM - Lengua de Señas Mexicana</option>
-                  <option value="IS">IS - Lengua de Señas Internacional</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="avatar-wrapper">
-              <div id="avatar-container" style="width:100%; height:100%;"></div>
-            </div>
-
-            <div class="subtitle-banner" id="subtitle-box">
-              AVATAR EN ESPERA / LISTO PARA INTERPRETAR
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- TAB 2: GESTIÓN DE USUARIOS -->
-      <div id="tab-admin" class="tab-content">
-        <div class="admin-grid">
-          
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Crear Nuevo Cliente / Usuario</span>
-            </div>
-            <div class="input-group">
-              <label>Nombre Completo</label>
-              <input type="text" id="new-user-name" placeholder="Ej. Carlos Mendoza">
-            </div>
-            <div class="input-group">
-              <label>Correo Electrónico</label>
-              <input type="email" id="new-user-email" placeholder="carlos@empresa.com">
-            </div>
-            <div class="input-group">
-              <label>Rol de Usuario</label>
-              <select class="input-group input" id="new-user-role" style="background:#090c10; color:#fff;">
-                <option value="Cliente">Cliente Sordo / Oyente</option>
-                <option value="Administrador">Administrador</option>
-              </select>
-            </div>
-            <button class="btn btn-green" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="createUser()">
-              <i data-lucide="user-plus"></i> CREAR USUARIO
-            </button>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Usuarios Registrados en la Aplicación</span>
-            </div>
-            <table class="user-table">
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Correo</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody id="user-list-tbody">
-                <tr>
-                  <td>Administrador General</td>
-                  <td>admin@inclusivo.com</td>
-                  <td>Administrador</td>
-                  <td><span class="status-active">● Activo</span></td>
-                  <td>-</td>
-                </tr>
-                <tr>
-                  <td>Víctor Hernández</td>
-                  <td>victor@sordos.org</td>
-                  <td>Cliente</td>
-                  <td><span class="status-active">● Activo</span></td>
-                  <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-        </div>
-      </div>
-
-    </main>
-  </div>
+  </main>
 
   <script>
-    // Lucide Icons
-    lucide.createIcons();
-
-    // Estado Global
-    let autoAudio = true;
-    let currentLang = 'LSM';
-    let camera = null;
-    let scene, camera3D, renderer, leftArm, rightArm, head, leftHand, rightHand;
+    let scene, camera, renderer, mixer, avatarModel;
+    let animationsMap = new Map();
+    let currentAction = null;
     let clock = new THREE.Clock();
-    let isSigning = false;
-    let signAnimationTimer = null;
-    let lastDetectionTime = 0;
-    let avatarInitialized = false;
 
-    // Login & Tabs
-    function handleLogin() {
-      const u = document.getElementById('login-user').value.trim();
-      const p = document.getElementById('login-pass').value.trim();
-      if (u === 'admin' && p === '1234') {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('app-container').style.display = 'block';
-        
-        // Inicialización segura del Avatar 3D
-        setTimeout(() => {
-          if (!avatarInitialized) {
-            initAvatar3D();
-            avatarInitialized = true;
-          } else {
-            onWindowResize();
-          }
-        }, 100);
-      } else {
-        document.getElementById('login-error').style.display = 'block';
-      }
-    }
+    init();
 
-    function handleLogout() {
-      document.getElementById('app-container').style.display = 'none';
-      document.getElementById('login-overlay').style.display = 'flex';
-    }
-
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      if (tabName === 'communicator') {
-        event.currentTarget.classList.add('active');
-        document.getElementById('tab-communicator').classList.add('active');
-        setTimeout(onWindowResize, 50);
-      } else {
-        event.currentTarget.classList.add('active');
-        document.getElementById('tab-admin').classList.add('active');
-      }
-    }
-
-    // Avatar 3D
-    function initAvatar3D() {
+    function init() {
       const container = document.getElementById('avatar-container');
-      const w = container.clientWidth || 400;
-      const h = container.clientHeight || 420;
 
+      // Escena 3D
       scene = new THREE.Scene();
-      camera3D = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
-      camera3D.position.set(0, 1.45, 1.75);
-      camera3D.lookAt(0, 1.38, 0);
 
+      // Cámara
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 1.4, 2.2);
+
+      // Renderizador
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(w, h);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
       container.appendChild(renderer.domElement);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      // Iluminación
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
       scene.add(ambientLight);
 
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      mainLight.position.set(2, 4, 3);
-      scene.add(mainLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+      dirLight.position.set(2, 4, 3);
+      scene.add(dirLight);
 
-      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
-      fillLight.position.set(-2, 2, -1);
-      scene.add(fillLight);
+      // Cargar Modelo Avatar GLTF con Animaciones
+      const loader = new THREE.GLTFLoader();
+      
+      // Modelo humanoide por defecto preparado para WebGL
+      loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.glb', 
+        (gltf) => {
+          avatarModel = gltf.scene;
+          avatarModel.position.set(0, 0, 0);
+          avatarModel.scale.set(0.2, 0.2, 0.2);
+          scene.add(avatarModel);
 
-      buildDetailedHumanoidAvatar();
-      animate3D();
+          // Inicializar mezclador de animaciones esqueléticas
+          mixer = new THREE.AnimationMixer(avatarModel);
+
+          // Mapear clips de animación del archivo 3D
+          gltf.animations.forEach((clip) => {
+            animationsMap.set(clip.name.toLowerCase(), clip);
+          });
+
+          // Iniciar estado reposo (Idle/Wave)
+          if (animationsMap.has('wave')) {
+            playAnimationDirect('wave');
+          }
+
+          document.getElementById('subtitles').innerText = "AVATAR CONECTADO / LISTO";
+        },
+        (xhr) => {
+          document.getElementById('subtitles').innerText = `CARGANDO AVATAR 3D: ${Math.round((xhr.loaded / xhr.total) * 100)}%`;
+        },
+        (error) => {
+          console.error("Error al cargar el avatar 3D:", error);
+          document.getElementById('subtitles').innerText = "ERROR AL CARGAR MODELO 3D";
+        }
+      );
 
       window.addEventListener('resize', onWindowResize);
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
+      renderer.render(scene, camera);
+    }
+
+    function playAnimationDirect(name) {
+      if (!mixer || !animationsMap.has(name)) return;
+
+      const clip = animationsMap.get(name);
+      const newAction = mixer.clipAction(clip);
+
+      if (currentAction && currentAction !== newAction) {
+        currentAction.fadeOut(0.3);
+      }
+
+      newAction.reset().fadeIn(0.3).play();
+      currentAction = newAction;
+    }
+
+    function playAnimation(signName) {
+      const subtitles = document.getElementById('subtitles');
+
+      // Mapeo de señas a animaciones del modelo humanoide cargado
+      const mapping = {
+        'hola': 'wave',
+        'gracias': 'jump',
+        'si': 'yes',
+        'no': 'no'
+      };
+
+      const animKey = mapping[signName.toLowerCase()] || 'wave';
+
+      if (animationsMap.has(animKey)) {
+        subtitles.innerText = `REPRODUCIENDO SEÑA: "${signName.toUpperCase()}"`;
+        playAnimationDirect(animKey);
+      } else {
+        subtitles.innerText = `SEÑA "${signName.toUpperCase()}" EN PROCESO DE MAPPING`;
+      }
+    }
+
+    function interpretText() {
+      const input = document.getElementById('text-input').value.trim().toLowerCase();
+      if (!input) return;
+
+      if (input.includes('hola')) playAnimation('hola');
+      else if (input.includes('gracias')) playAnimation('gracias');
+      else if (input.includes('si') || input.includes('sí')) playAnimation('si');
+      else if (input.includes('no')) playAnimation('no');
+      else {
+        document.getElementById('subtitles').innerText = `INTERPRETANDO: "${input.toUpperCase()}"`;
+        playAnimationDirect('wave');
+      }
     }
 
     function onWindowResize() {
-      if (!renderer || !camera3D) return;
       const container = document.getElementById('avatar-container');
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w > 0 && h > 0) {
-        camera3D.aspect = w / h;
-        camera3D.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      }
-    }
-
-    function buildDetailedHumanoidAvatar() {
-      const avatarGroup = new THREE.Group();
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xe5a978, roughness: 0.5 });
-      const clothMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.8 });
-
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.20, 0.75, 32), clothMat);
-      torso.position.y = 1.0;
-      avatarGroup.add(torso);
-
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.12, 16), skinMat);
-      neck.position.y = 1.42;
-      avatarGroup.add(neck);
-
-      head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), skinMat);
-      head.position.y = 1.57;
-      avatarGroup.add(head);
-
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.146, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2), hairMat);
-      hair.position.y = 1.59;
-      avatarGroup.add(hair);
-
-      const eyeGeo = new THREE.SphereGeometry(0.016, 16, 16);
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.045, 1.58, 0.128);
-      const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.045, 1.58, 0.128);
-      avatarGroup.add(eyeL); avatarGroup.add(eyeR);
-
-      const armGeo = new THREE.CylinderGeometry(0.042, 0.035, 0.45, 16);
-      const handGeo = new THREE.BoxGeometry(0.08, 0.02, 0.09);
-
-      leftArm = new THREE.Group();
-      leftArm.position.set(-0.28, 1.30, 0);
-      const lMesh = new THREE.Mesh(armGeo, clothMat); lMesh.position.y = -0.22;
-      leftArm.add(lMesh);
-      leftHand = new THREE.Mesh(handGeo, skinMat); leftHand.position.y = -0.45;
-      leftArm.add(leftHand);
-      avatarGroup.add(leftArm);
-
-      rightArm = new THREE.Group();
-      rightArm.position.set(0.28, 1.30, 0);
-      const rMesh = new THREE.Mesh(armGeo, clothMat); rMesh.position.y = -0.22;
-      rightArm.add(rMesh);
-      rightHand = new THREE.Mesh(handGeo, skinMat); rightHand.position.y = -0.45;
-      rightArm.add(rightHand);
-      avatarGroup.add(rightArm);
-
-      scene.add(avatarGroup);
-    }
-
-    function animate3D() {
-      requestAnimationFrame(animate3D);
-      const t = clock.getElapsedTime();
-
-      if (!isSigning) {
-        leftArm.rotation.x = 0.3 + Math.sin(t * 1.5) * 0.05;
-        leftArm.rotation.z = 0.2;
-        rightArm.rotation.x = 0.3 + Math.cos(t * 1.5) * 0.05;
-        rightArm.rotation.z = -0.2;
-        head.rotation.y = Math.sin(t * 0.8) * 0.05;
-      } else {
-        leftArm.rotation.x = 0.8 + Math.sin(t * 8) * 0.4;
-        leftArm.rotation.y = Math.cos(t * 6) * 0.3;
-        rightArm.rotation.x = 0.8 + Math.cos(t * 8) * 0.4;
-        rightArm.rotation.y = -Math.sin(t * 6) * 0.3;
-        head.rotation.y = Math.sin(t * 4) * 0.1;
-      }
-
-      renderer.render(scene, camera3D);
-    }
-
-    // MediaPipe Hands (Detección de 2 Manos con Puntos Verdes Pequeños)
-    const videoElement = document.getElementById('input-video');
-    const canvasElement = document.getElementById('output-canvas');
-    const canvasCtx = canvasElement.getContext('2d');
-
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
-
-    hands.onResults((results) => {
-      if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-      }
-
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (const landmarks of results.multiHandLandmarks) {
-          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { 
-            color: 'rgba(0, 255, 0, 0.4)', 
-            lineWidth: 1 
-          });
-          drawLandmarks(canvasCtx, landmarks, { 
-            color: '#00FF00', 
-            fillColor: '#00FF00',
-            lineWidth: 1, 
-            radius: 1.5 
-          });
-        }
-
-        const now = Date.now();
-        if (now - lastDetectionTime > 3000) {
-          lastDetectionTime = now;
-          const detectedText = (currentLang === 'LSM') ? "¡HOLA! ¿CÓMO ESTÁS?" : "HELLO! WELCOME";
-          document.getElementById('status-sign').innerHTML = `<i data-lucide="check-circle" style="color:#10b981;"></i> SEÑA DETECTADA: ${detectedText}`;
-          lucide.createIcons();
-          if (autoAudio) speakText(detectedText);
-        }
-      } else {
-        document.getElementById('status-sign').innerHTML = `<i data-lucide="eye"></i> ESPERANDO SEÑA...`;
-        lucide.createIcons();
-      }
-      canvasCtx.restore();
-    });
-
-    function startCamera() {
-      if (!camera) {
-        camera = new Camera(videoElement, {
-          onFrame: async () => { await hands.send({ image: videoElement }); },
-          width: 640, height: 480
-        });
-      }
-      camera.start();
-    }
-
-    function stopCamera() {
-      if (camera) camera.stop();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      document.getElementById('status-sign').innerHTML = `<i data-lucide="square"></i> CÁMARA DETENIDA`;
-      lucide.createIcons();
-    }
-
-    function speakText(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-
-    function toggleAudio() {
-      autoAudio = !autoAudio;
-      const btn = document.getElementById('audio-btn');
-      btn.innerHTML = autoAudio ? `<i data-lucide="volume-2"></i> Voz: ON` : `<i data-lucide="volume-x"></i> Voz: OFF`;
-      btn.className = autoAudio ? "btn btn-blue" : "btn btn-red";
-      lucide.createIcons();
-    }
-
-    function translateToSign() {
-      const text = document.getElementById('speaker-text').value.trim();
-      if (!text) return;
-
-      document.getElementById('subtitle-box').innerText = `AVATAR INTERPRETANDO (${currentLang}): "${text.toUpperCase()}"`;
-      isSigning = true;
-      clearTimeout(signAnimationTimer);
-      signAnimationTimer = setTimeout(() => {
-        isSigning = false;
-        document.getElementById('subtitle-box').innerText = `AVATAR EN ESPERA / LISTO PARA INTERPRETAR`;
-      }, 4000);
-    }
-
-    function startSpeechRecognition() {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Navegador no soporta entrada de voz.");
-        return;
-      }
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
-
-      recognition.onstart = () => { document.getElementById('mic-btn').style.background = '#ef4444'; };
-      recognition.onresult = (event) => {
-        document.getElementById('speaker-text').value = event.results[0][0].transcript;
-        document.getElementById('mic-btn').style.background = '#10b981';
-        translateToSign();
-      };
-      recognition.onerror = () => { document.getElementById('mic-btn').style.background = '#10b981'; };
-      recognition.start();
-    }
-
-    function changeLanguage() {
-      currentLang = document.getElementById('sign-language-select').value;
-      document.getElementById('lang-display-badge').innerText = currentLang;
-    }
-
-    function trainSign() {
-      const input = document.getElementById('new-sign');
-      if (input.value.trim()) {
-        alert(`Seña "${input.value}" registrada para ${currentLang}.`);
-        input.value = '';
-      }
-    }
-
-    function createUser() {
-      const name = document.getElementById('new-user-name').value.trim();
-      const email = document.getElementById('new-user-email').value.trim();
-      const role = document.getElementById('new-user-role').value;
-
-      if (!name || !email) return alert("Completa los datos del usuario.");
-
-      const tbody = document.getElementById('user-list-tbody');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${name}</td><td>${email}</td><td>${role}</td>
-        <td><span class="status-active">● Activo</span></td>
-        <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
-      `;
-      tbody.appendChild(tr);
-      document.getElementById('new-user-name').value = '';
-      document.getElementById('new-user-email').value = '';
-    }
-
-    function deleteUser(btn) {
-      if (confirm("¿Eliminar usuario?")) btn.closest('tr').remove();
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
     }
   </script>
 </body>
