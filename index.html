@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Avatar 3D Intérprete - Lengua de Señas</title>
+  <title>Avatar Humano 3D Intérprete - Lengua de Señas</title>
 
-  <!-- Three.js + GLTFLoader -->
+  <!-- Three.js + GLTFLoader + OrbitControls -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <style>
     :root {
-      --bg-primary: #0a0d14;
+      --bg-primary: #090d16;
       --bg-card: #121824;
       --border-color: #232d3f;
       --accent-blue: #2563eb;
@@ -24,12 +25,12 @@
 
     header {
       background: #0e131f; border-bottom: 1px solid var(--border-color);
-      padding: 16px 24px; text-align: center;
+      padding: 14px 24px; text-align: center;
     }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #fff; }
 
     main {
-      flex: 1; display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; width: 100%;
+      flex: 1; display: grid; grid-template-columns: 1fr 360px; gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto; width: 100%;
     }
 
     .avatar-card {
@@ -37,73 +38,70 @@
       border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
 
-    #avatar-container { width: 100%; height: 100%; min-height: 400px; background: radial-gradient(circle, #1e293b 0%, #0a0d14 100%); }
+    #avatar-container { width: 100%; height: 100%; min-height: 400px; background: radial-gradient(circle, #1e293b 0%, #090d16 100%); }
 
     .subtitle-overlay {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(14, 19, 31, 0.85); border: 1px solid var(--border-color);
-      padding: 12px 24px; border-radius: 30px; font-weight: 700; color: #34d399;
-      backdrop-filter: blur(8px); text-align: center; width: 80%;
+      background: rgba(14, 19, 31, 0.9); border: 1px solid var(--border-color);
+      padding: 12px 28px; border-radius: 30px; font-weight: 700; color: #34d399;
+      backdrop-filter: blur(8px); text-align: center; width: 75%; font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
     .controls-card {
       background: var(--bg-card); border: 1px solid var(--border-color);
-      border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px;
+      border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;
     }
 
     .control-group { display: flex; flex-direction: column; gap: 8px; }
-    .control-group label { font-size: 0.85rem; color: #9ca3af; font-weight: 600; }
+    .control-group label { font-size: 0.85rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; }
 
-    input, select, button {
+    input, button {
       width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);
       background: #090c10; color: #fff; font-size: 0.95rem; outline: none;
     }
 
-    button {
-      background: var(--accent-blue); border: none; font-weight: 700; cursor: pointer; transition: 0.2s;
-    }
+    button { background: var(--accent-blue); border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
     button:hover { background: #1d4ed8; }
-    .btn-green { background: var(--accent-green); }
-    .btn-green:hover { background: #059669; }
 
-    .dictionary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .dict-btn { background: #172033; border: 1px solid var(--border-color); padding: 10px; font-size: 0.85rem; }
+    .dictionary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dict-btn { background: #172033; border: 1px solid var(--border-color); padding: 12px; font-size: 0.85rem; }
     .dict-btn:hover { background: var(--accent-blue); }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Traductor Intérprete 3D en Lengua de Señas</h1>
+    <h1>Intérprete Humano 3D - Lengua de Señas</h1>
   </header>
 
   <main>
     <div class="avatar-card">
       <div id="avatar-container"></div>
-      <div class="subtitle-overlay" id="subtitles">ESPERANDO ENTRADA DE TEXTO...</div>
+      <div class="subtitle-overlay" id="subtitles">CARGANDO AVATAR HUMANO...</div>
     </div>
 
     <div class="controls-card">
       <div class="control-group">
-        <label>Escribe para traducir a señas:</label>
-        <input type="text" id="text-input" placeholder="Ej: Hola, Gracias...">
-        <button onclick="interpretText()">TRADUCIR A SEÑAS</button>
+        <label>Traducción de Texto a Señas:</label>
+        <input type="text" id="text-input" placeholder="Escribe 'Hola', 'Gracias'...">
+        <button onclick="interpretText()">TRADUCIR</button>
       </div>
 
       <div class="control-group">
-        <label>Librería de Señas Rápida:</label>
+        <label>Catálogo de Señas:</label>
         <div class="dictionary-grid">
           <button class="dict-btn" onclick="playAnimation('hola')">👋 HOLA</button>
-          <button class="dict-btn" onclick="playAnimation('gracias')">🙏 GRACIAS</button>
-          <button class="dict-btn" onclick="playAnimation('si')">👍 SÍ</button>
-          <button class="dict-btn" onclick="playAnimation('no')">👎 NO</button>
+          <button class="dict-btn" onclick="playAnimation('saludo')">🧍 SALUDAR</button>
+          <button class="dict-btn" onclick="playAnimation('caminar')">🚶 MOVERSE</button>
+          <button class="dict-btn" onclick="playAnimation('reposo')">🛑 REPOSO</button>
         </div>
       </div>
     </div>
   </main>
 
   <script>
-    let scene, camera, renderer, mixer, avatarModel;
+    let scene, camera, renderer, mixer, controls;
     let animationsMap = new Map();
     let currentAction = null;
     let clock = new THREE.Clock();
@@ -113,60 +111,71 @@
     function init() {
       const container = document.getElementById('avatar-container');
 
-      // Escena 3D
+      // Escena
       scene = new THREE.Scene();
 
-      // Cámara
-      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-      camera.position.set(0, 1.4, 2.2);
+      // Cámara enfocada al torso/rostro del humano
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 1.35, 1.8);
 
-      // Renderizador
+      // Renderizador con mapeo de color realista
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.shadowMap.enabled = true;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
       container.appendChild(renderer.domElement);
 
-      // Iluminación
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      // Control de cámara con ratón/touch
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enablePan = false;
+      controls.target.set(0, 1.2, 0);
+      controls.update();
+
+      // Luces de estudio fotográfico
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
-      dirLight.position.set(2, 4, 3);
-      scene.add(dirLight);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      mainLight.position.set(1.5, 3, 2);
+      scene.add(mainLight);
 
-      // Cargar Modelo Avatar GLTF con Animaciones
+      const fillLight = new THREE.DirectionalLight(0x90e0ef, 0.5);
+      fillLight.position.set(-1.5, 2, -1);
+      scene.add(fillLight);
+
+      // Cargar Avatar Humanoid Realista (GLTF)
       const loader = new THREE.GLTFLoader();
       
-      // Modelo humanoide por defecto preparado para WebGL
-      loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.glb', 
+      // Modelo humano completo
+      loader.load('https://threejs.org/examples/models/gltf/Xbot.glb', 
         (gltf) => {
-          avatarModel = gltf.scene;
+          const avatarModel = gltf.scene;
           avatarModel.position.set(0, 0, 0);
-          avatarModel.scale.set(0.2, 0.2, 0.2);
+          avatarModel.scale.set(1, 1, 1);
           scene.add(avatarModel);
 
-          // Inicializar mezclador de animaciones esqueléticas
+          // Inicializar motor de huesos/animaciones
           mixer = new THREE.AnimationMixer(avatarModel);
 
-          // Mapear clips de animación del archivo 3D
           gltf.animations.forEach((clip) => {
             animationsMap.set(clip.name.toLowerCase(), clip);
           });
 
-          // Iniciar estado reposo (Idle/Wave)
-          if (animationsMap.has('wave')) {
-            playAnimationDirect('wave');
+          // Animación por defecto (Idle Humano)
+          if (animationsMap.has('idle')) {
+            playAnimationDirect('idle');
           }
 
-          document.getElementById('subtitles').innerText = "AVATAR CONECTADO / LISTO";
+          document.getElementById('subtitles').innerText = "AVATAR HUMANO LISTO";
         },
         (xhr) => {
-          document.getElementById('subtitles').innerText = `CARGANDO AVATAR 3D: ${Math.round((xhr.loaded / xhr.total) * 100)}%`;
+          const percent = Math.round((xhr.loaded / xhr.total) * 100);
+          document.getElementById('subtitles').innerText = `CARGANDO HUMANO 3D: ${percent}%`;
         },
         (error) => {
-          console.error("Error al cargar el avatar 3D:", error);
-          document.getElementById('subtitles').innerText = "ERROR AL CARGAR MODELO 3D";
+          console.error("Error al cargar avatar humano:", error);
+          document.getElementById('subtitles').innerText = "ERROR AL CARGAR MODELO HUMANO";
         }
       );
 
@@ -188,31 +197,28 @@
       const newAction = mixer.clipAction(clip);
 
       if (currentAction && currentAction !== newAction) {
-        currentAction.fadeOut(0.3);
+        currentAction.fadeOut(0.25);
       }
 
-      newAction.reset().fadeIn(0.3).play();
+      newAction.reset().fadeIn(0.25).play();
       currentAction = newAction;
     }
 
-    function playAnimation(signName) {
+    function playAnimation(key) {
       const subtitles = document.getElementById('subtitles');
 
-      // Mapeo de señas a animaciones del modelo humanoide cargado
-      const mapping = {
-        'hola': 'wave',
-        'gracias': 'jump',
-        'si': 'yes',
-        'no': 'no'
+      const map = {
+        'hola': 'agree',
+        'saludo': 'headshake',
+        'caminar': 'walk',
+        'reposo': 'idle'
       };
 
-      const animKey = mapping[signName.toLowerCase()] || 'wave';
+      const targetAnim = map[key] || 'idle';
 
-      if (animationsMap.has(animKey)) {
-        subtitles.innerText = `REPRODUCIENDO SEÑA: "${signName.toUpperCase()}"`;
-        playAnimationDirect(animKey);
-      } else {
-        subtitles.innerText = `SEÑA "${signName.toUpperCase()}" EN PROCESO DE MAPPING`;
+      if (animationsMap.has(targetAnim)) {
+        subtitles.innerText = `EJECUTANDO SEÑA: "${key.toUpperCase()}"`;
+        playAnimationDirect(targetAnim);
       }
     }
 
@@ -221,13 +227,8 @@
       if (!input) return;
 
       if (input.includes('hola')) playAnimation('hola');
-      else if (input.includes('gracias')) playAnimation('gracias');
-      else if (input.includes('si') || input.includes('sí')) playAnimation('si');
-      else if (input.includes('no')) playAnimation('no');
-      else {
-        document.getElementById('subtitles').innerText = `INTERPRETANDO: "${input.toUpperCase()}"`;
-        playAnimationDirect('wave');
-      }
+      else if (input.includes('saludo') || input.includes('buenas')) playAnimation('saludo');
+      else playAnimation('caminar');
     }
 
     function onWindowResize() {
