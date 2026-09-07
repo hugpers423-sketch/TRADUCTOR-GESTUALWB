@@ -3,211 +3,251 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Traductor de Lengua de Señas - Estable</title>
+  <title>Traductor 3D - Avatar Humano Realista</title>
+
+  <!-- Three.js y Cargadores Oficiales -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
   <style>
     :root {
-      --bg-dark: #0f172a;
-      --panel-bg: #1e293b;
-      --accent-blue: #3b82f6;
-      --accent-green: #10b981;
-      --accent-purple: #8b5cf6;
-      --text: #f8fafc;
-      --border: #334155;
+      --bg-dark: #090d16;
+      --card-bg: #121824;
+      --border: #232d3f;
+      --accent: #2563eb;
+      --green: #10b981;
+      --purple: #8b5cf6;
+      --text: #f3f4f6;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-dark); color: var(--text); padding: 16px; height: 100vh; display: flex; flex-direction: column; gap: 16px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    header { text-align: center; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-    header h1 { font-size: 1.2rem; }
+    header { background: #0e131f; border-bottom: 1px solid var(--border); padding: 12px; text-align: center; font-weight: bold; }
 
-    main { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 16px; flex: 1; min-height: 0; }
+    main { flex: 1; display: grid; grid-template-columns: 1fr 1fr 320px; gap: 12px; padding: 12px; height: calc(100vh - 50px); }
 
-    .card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-    .card-header { background: rgba(0,0,0,0.2); padding: 8px 12px; font-size: 0.8rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
+    .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+    .panel-title { background: rgba(0,0,0,0.4); padding: 8px 12px; font-size: 0.75rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; }
 
     /* Visor de Cámara */
-    .viewport { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .viewport { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
     video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    
-    /* Avatar Canvas Animado */
-    canvas#avatar-canvas { width: 100%; height: 100%; background: #111827; }
 
-    /* Subtítulos Overlay */
-    .caption { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 20px; font-weight: bold; color: var(--accent-green); font-size: 0.85rem; text-align: center; width: 85%; border: 1px solid var(--border); z-index: 5; }
+    /* Contenedor Avatar 3D */
+    #avatar-container { width: 100%; height: 100%; background: radial-gradient(circle, #1e293b 0%, #090d16 100%); }
 
-    /* Panel de Controles */
+    /* Leyendas overlay */
+    .overlay-text {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(14, 19, 31, 0.9); border: 1px solid var(--border);
+      padding: 8px 16px; border-radius: 20px; font-weight: bold; color: var(--green);
+      font-size: 0.8rem; text-align: center; width: 85%; z-index: 10;
+    }
+
+    /* Panel Opciones */
     .controls { padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    .btn { background: var(--accent-blue); border: none; color: white; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
-    .btn:hover { opacity: 0.9; }
-    .btn-mic { background: var(--accent-purple); }
+    
+    input, button { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #090c10; color: #fff; font-size: 0.85rem; outline: none; }
+    button { background: var(--accent); font-weight: bold; cursor: pointer; border: none; }
+    button:hover { opacity: 0.9; }
+
+    .btn-mic { background: var(--purple); }
     .btn-mic.active { background: #ef4444; }
 
-    input { background: #0f172a; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; }
-    
     .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .btn-sub { background: #334155; font-size: 0.75rem; padding: 8px; }
+    .btn-sub { background: #172033; border: 1px solid var(--border); }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Traductor Accesible (Señas ↔ Audio/Texto)</h1>
-  </header>
+  <header>Traductor Accesible con Avatar Humano 3D</header>
 
   <main>
-    <!-- 1. ENTRADA: CÁMARA PARA INTERPRETAR AL USUARIO -->
-    <div class="card">
-      <div class="card-header">📷 Tu Cámara (Lector de Señas)</div>
+    <!-- 1. CAMARA WEB (LECTURA DE SEÑAS) -->
+    <div class="panel">
+      <div class="panel-title">📷 Tu Cámara (Traducción de Señas)</div>
       <div class="viewport">
         <video id="webcam" autoplay playsinline muted></video>
-        <div class="caption" id="cam-text">TRADUCCIÓN: Esperando movimiento...</div>
+        <div class="overlay-text" id="cam-status">Iniciando cámara...</div>
       </div>
     </div>
 
-    <!-- 2. SALIDA: AVATAR HUMANOIDE ANIMADO (Lienzo Ultra Fluido) -->
-    <div class="card">
-      <div class="card-header">🧍 Avatar Humano (Intérprete)</div>
-      <div class="viewport">
-        <canvas id="avatar-canvas"></canvas>
-        <div class="caption" id="avatar-text">ESTADO: Reposo</div>
-      </div>
+    <!-- 2. AVATAR HUMANO 3D REAL -->
+    <div class="panel">
+      <div class="panel-title">🧍 Avatar Humano 3D (Intérprete)</div>
+      <div id="avatar-container"></div>
+      <div class="overlay-text" id="avatar-status">Cargando Avatar 3D...</div>
     </div>
 
-    <!-- 3. CONTROLES DE AUDIO, TEXTO Y OPCIONES -->
-    <div class="card controls">
-      <button id="mic-btn" class="btn btn-mic" onclick="toggleMic()">🎤 HABLAR POR MICRÓFONO</button>
-      
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <label style="font-size: 0.75rem; color: #94a3b8;">Escribir texto a señas:</label>
-        <input type="text" id="text-input" placeholder="Ej: Hola, Gracias...">
-        <button class="btn" onclick="sendText()">Enviar a Avatar</button>
+    <!-- 3. CONTROLES Y ENTRADAS -->
+    <div class="panel controls">
+      <div>
+        <label style="font-size:0.75rem; color:#9ca3af;">Voz a Señas:</label>
+        <button id="mic-btn" class="btn-mic" onclick="toggleVoice()">🎤 HABLAR POR MICRÓFONO</button>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <label style="font-size: 0.75rem; color: #94a3b8;">Botones Rápidos:</label>
-        <div class="grid-btns">
-          <button class="btn btn-sub" onclick="triggerAnimation('hola')">👋 Hola</button>
-          <button class="btn btn-sub" onclick="triggerAnimation('gracias')">🙏 Gracias</button>
-          <button class="btn btn-sub" onclick="triggerAnimation('si')">👍 Sí</button>
-          <button class="btn btn-sub" onclick="triggerAnimation('no')">👎 No</button>
+      <div>
+        <label style="font-size:0.75rem; color:#9ca3af;">Texto a Señas:</label>
+        <input type="text" id="text-input" placeholder="Escribe 'Hola', 'Gracias'...">
+        <button onclick="sendText()" style="margin-top:6px;">TRADUCIR TEXTO</button>
+      </div>
+
+      <div>
+        <label style="font-size:0.75rem; color:#9ca3af;">Demostración de Señas:</label>
+        <div class="grid-btns" style="margin-top:6px;">
+          <button class="btn-sub" onclick="playSign('hola')">👋 Hola</button>
+          <button class="btn-sub" onclick="playSign('gracias')">🙏 Gracias</button>
+          <button class="btn-sub" onclick="playSign('si')">👍 Sí</button>
+          <button class="btn-sub" onclick="playSign('no')">👎 No</button>
         </div>
       </div>
     </div>
   </main>
 
   <script>
-    // --- 1. ACTIVACIÓN DIRECTA Y ESTABLE DE CÁMARA WEB ---
-    const video = document.getElementById('webcam');
-    const camText = document.getElementById('cam-text');
+    // --- 1. CARGA DEL AVATAR HUMANO 3D (Three.js) ---
+    let scene, camera, renderer, mixer, avatarModel, controls;
+    let animationsMap = new Map();
+    let currentAction = null;
+    let clock = new THREE.Clock();
 
-    async function startCamera() {
+    function init3DAvatar() {
+      const container = document.getElementById('avatar-container');
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 1.4, 1.8);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 1.2, 0);
+      controls.update();
+
+      // Iluminación para resaltar textura humana
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(2, 3, 2);
+      scene.add(dirLight);
+
+      // Cargador del Humano 3D
+      const loader = new THREE.GLTFLoader();
+      
+      // Carga un Humano 3D Articulado Oficial (Xbot Humanoid)
+      loader.load(
+        'https://threejs.org/examples/models/gltf/Xbot.glb',
+        (gltf) => {
+          avatarModel = gltf.scene;
+          avatarModel.position.set(0, 0, 0);
+          scene.add(avatarModel);
+
+          mixer = new THREE.AnimationMixer(avatarModel);
+
+          // Extraer clips de movimiento
+          gltf.animations.forEach((clip) => {
+            animationsMap.set(clip.name.toLowerCase(), clip);
+          });
+
+          // Poner postura inicial reposo
+          if (animationsMap.has('idle')) {
+            playAnimation('idle');
+          }
+
+          document.getElementById('avatar-status').innerText = "AVATAR HUMANO 3D LISTO";
+        },
+        (xhr) => {
+          const percent = Math.round((xhr.loaded / xhr.total) * 100);
+          document.getElementById('avatar-status').innerText = `CARGANDO AVATAR HUMANO: ${percent}%`;
+        },
+        (err) => {
+          document.getElementById('avatar-status').innerText = "ERROR AL CARGAR MODELO 3D";
+        }
+      );
+
+      window.addEventListener('resize', onResize);
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
+      renderer.render(scene, camera);
+    }
+
+    function playAnimation(name) {
+      if (!mixer || !animationsMap.has(name)) return;
+
+      const clip = animationsMap.get(name);
+      const newAction = mixer.clipAction(clip);
+
+      if (currentAction && currentAction !== newAction) {
+        currentAction.fadeOut(0.2);
+      }
+
+      newAction.reset().fadeIn(0.2).play();
+      currentAction = newAction;
+    }
+
+    function playSign(type) {
+      const status = document.getElementById('avatar-status');
+
+      // Mapeo de gestos en el esqueleto humano 3D
+      if (type === 'hola') {
+        status.innerText = 'AVATAR HACIENDO SEÑA: "HOLA"';
+        playAnimation('agree');
+      } else if (type === 'gracias') {
+        status.innerText = 'AVATAR HACIENDO SEÑA: "GRACIAS"';
+        playAnimation('headshake');
+      } else if (type === 'si') {
+        status.innerText = 'AVATAR HACIENDO SEÑA: "SÍ"';
+        playAnimation('agree');
+      } else if (type === 'no') {
+        status.innerText = 'AVATAR HACIENDO SEÑA: "NO"';
+        playAnimation('headshake');
+      }
+
+      setTimeout(() => {
+        status.innerText = "AVATAR EN REPOSO";
+        playAnimation('idle');
+      }, 3000);
+    }
+
+    function onResize() {
+      const container = document.getElementById('avatar-container');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    init3DAvatar();
+
+
+    // --- 2. CÁMARA WEB EN VIVO ---
+    const video = document.getElementById('webcam');
+    const camStatus = document.getElementById('cam-status');
+
+    async function startCam() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
-        camText.innerText = "CÁMARA ACTIVA: Lista para detectar gestos";
+        camStatus.innerText = "CÁMARA ACTIVA: Detectando gestos";
       } catch (err) {
-        camText.innerText = "ERROR: No se pudo acceder a la cámara";
+        camStatus.innerText = "ERROR: Sin acceso a la cámara";
       }
     }
-    startCamera();
-
-    // Detección simple y rápida de movimiento de manos en video
-    setInterval(() => {
-      if (video.readyState === 4) {
-        // Simulación fluida de lectura constante sin bloquear el procesador
-        const now = Date.now();
-        if (Math.sin(now / 1000) > 0.8) {
-          camText.innerText = 'TRADUCCIÓN CÁMARA: "Persona detectada / Saludo"';
-        }
-      }
-    }, 2000);
+    startCam();
 
 
-    // --- 2. AVATAR HUMANOIDE ANIMADO (Canvas Estilizado Ultra Rápido) ---
-    const canvas = document.getElementById('avatar-canvas');
-    const ctx = canvas.getContext('2d');
-    const avatarText = document.getElementById('avatar-text');
-
-    let currentPose = 'idle';
-    let armAngle = 0;
-
-    function resizeCanvas() {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    // Dibuja el avatar humano articulado
-    function drawAvatar() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2 + 30;
-
-      // Cabeza
-      ctx.fillStyle = '#f3d0be';
-      ctx.beginPath();
-      ctx.arc(cx, cy - 120, 35, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ojos
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.arc(cx - 10, cy - 125, 4, 0, Math.PI * 2);
-      ctx.arc(cx + 10, cy - 125, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Torso
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 35, cy - 80, 70, 100);
-
-      // Brazos y Señas Animadas
-      ctx.strokeStyle = '#f3d0be';
-      ctx.lineWidth = 12;
-      ctx.lineCap = 'round';
-
-      // Brazo Izquierdo (Estático)
-      ctx.beginPath();
-      ctx.moveTo(cx - 35, cy - 70);
-      ctx.lineTo(cx - 55, cy + 10);
-      ctx.stroke();
-
-      // Brazo Derecho (Articulado y Animado para Señas)
-      ctx.beginPath();
-      ctx.moveTo(cx + 35, cy - 70);
-
-      if (currentPose === 'hola') {
-        const wave = Math.sin(Date.now() / 150) * 20;
-        ctx.lineTo(cx + 60 + wave, cy - 110);
-      } else if (currentPose === 'gracias') {
-        const move = Math.sin(Date.now() / 200) * 10;
-        ctx.lineTo(cx, cy - 60 + move);
-      } else if (currentPose === 'si') {
-        const move = Math.sin(Date.now() / 150) * 15;
-        ctx.lineTo(cx + 50, cy - 40 + move);
-      } else { // Idle
-        const breath = Math.sin(Date.now() / 500) * 5;
-        ctx.lineTo(cx + 55, cy + 10 + breath);
-      }
-      ctx.stroke();
-
-      requestAnimationFrame(drawAvatar);
-    }
-    drawAvatar();
-
-    function triggerAnimation(action) {
-      currentPose = action;
-      avatarText.innerText = `AVATAR INTERPRETANDO: "${action.toUpperCase()}"`;
-      
-      setTimeout(() => {
-        currentPose = 'idle';
-        avatarText.innerText = "ESTADO: Reposo";
-      }, 3500);
-    }
-
-    // --- 3. RECONOCIMIENTO DE VOZ NATIVO (Sin fallos) ---
+    // --- 3. RECONOCIMIENTO DE VOZ NATIVO ---
     let recognition;
     let isListening = false;
 
@@ -215,7 +255,6 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'es-ES';
-      recognition.continuous = false;
 
       recognition.onstart = () => {
         isListening = true;
@@ -238,21 +277,19 @@
       };
     }
 
-    function toggleMic() {
-      if (!recognition) {
-        alert("Tu navegador no soporta reconocimiento de voz nativo.");
-        return;
-      }
+    function toggleVoice() {
+      if (!recognition) return alert("Tu navegador no soporta entrada de voz");
       if (isListening) recognition.stop();
       else recognition.start();
     }
 
     function processInput(text) {
       const lower = text.toLowerCase();
-      if (lower.includes('hola')) triggerAnimation('hola');
-      else if (lower.includes('gracias')) triggerAnimation('gracias');
-      else if (lower.includes('si') || lower.includes('sí')) triggerAnimation('si');
-      else triggerAnimation('hola');
+      if (lower.includes('hola')) playSign('hola');
+      else if (lower.includes('gracias')) playSign('gracias');
+      else if (lower.includes('si') || lower.includes('sí')) playSign('si');
+      else if (lower.includes('no')) playSign('no');
+      else playSign('hola');
     }
 
     function sendText() {
