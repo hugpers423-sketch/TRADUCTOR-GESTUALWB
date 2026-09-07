@@ -1,4 +1,388 @@
-// Lucide Icons
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comunicador Inclusivo Pro - LSM & International Sign</title>
+
+  <!-- Three.js + GLTFLoader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- MediaPipe Hands & Drawing Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-card: #121824;
+      --bg-card-border: #232d3f;
+      --accent-blue: #2563eb;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-primary); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+    /* LOGIN MODAL */
+    #login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10, 13, 20, 0.95);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      width: 100%; max-width: 420px;
+      padding: 32px; border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+    .logo-container {
+      width: 80px; height: 80px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 20px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    }
+    .login-box h2 { font-size: 1.5rem; margin-bottom: 8px; font-weight: 700; }
+    .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .input-group { margin-bottom: 16px; text-align: left; }
+    .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+    .input-group input {
+      width: 100%; padding: 12px 14px;
+      background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none;
+    }
+    .input-group input:focus { border-color: var(--accent-blue); }
+    .btn-login {
+      width: 100%; padding: 12px; background: linear-gradient(90deg, var(--accent-blue), #3b82f6);
+      color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+      font-size: 1rem; transition: all 0.2s; margin-top: 8px;
+    }
+    .btn-login:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    /* LAYOUT PRINCIPAL */
+    header {
+      background: #0e131f; border-bottom: 1px solid var(--bg-card-border);
+      padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .header-logo { display: flex; align-items: center; gap: 12px; }
+    .header-logo .icon-box {
+      width: 40px; height: 40px; background: var(--accent-blue);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    }
+    .header-logo h1 { font-size: 1.2rem; font-weight: 700; }
+
+    .nav-tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      padding: 8px 16px; border-radius: 8px; background: transparent; border: none;
+      color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn.active, .tab-btn:hover { background: var(--bg-card-border); color: #fff; }
+
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-badge {
+      width: 36px; height: 36px; background: var(--accent-purple);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+
+    main { padding: 20px; max-width: 1600px; margin: 0 auto; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* GRID COMUNICADOR */
+    .communicator-grid {
+      display: grid; grid-template-columns: 360px 1fr; gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: 12px; padding: 18px; display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bg-card-border);
+    }
+    .card-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+
+    /* ENTRADA DE SEÑAS */
+    .video-wrapper {
+      position: relative; width: 100%; height: 250px; background: #000;
+      border-radius: 10px; overflow: hidden; margin-bottom: 12px;
+      border: 1px solid var(--bg-card-border);
+    }
+    video, canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .lang-badge {
+      position: absolute; top: 10px; right: 10px; z-index: 10;
+      background: rgba(16, 185, 129, 0.9); color: #fff; font-size: 0.7rem; font-weight: 800;
+      padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(4px);
+    }
+
+    .detection-status {
+      background: #172033; border: 1px solid #2b3854; color: #60a5fa;
+      padding: 12px; border-radius: 8px; text-align: center; font-weight: 700;
+      font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .control-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .btn {
+      padding: 10px; border: none; border-radius: 8px; font-weight: 700;
+      font-size: 0.75rem; cursor: pointer; text-transform: uppercase; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.2s;
+    }
+    .btn-green { background: var(--accent-green); }
+    .btn-blue { background: var(--accent-blue); }
+    .btn-red { background: var(--accent-red); }
+    .btn:hover { opacity: 0.9; transform: scale(0.98); }
+
+    .train-box { display: flex; gap: 8px; }
+    .train-box input {
+      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
+    }
+
+    /* SECCIÓN OYENTE */
+    .speaker-section {
+      background: #0e131f; border: 1px solid var(--bg-card-border);
+      border-radius: 10px; padding: 14px; margin-top: 14px;
+    }
+    .speaker-title { font-size: 0.8rem; font-weight: 700; color: #a7f3d0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .speaker-controls { display: flex; gap: 8px; }
+    .speaker-controls input {
+      flex: 1; padding: 10px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none;
+    }
+
+    /* AVATAR 3D PANEL */
+    .avatar-wrapper {
+      position: relative; width: 100%; height: 420px; background: radial-gradient(circle, #1a2336 0%, #090d16 100%);
+      border-radius: 10px; overflow: hidden; border: 1px solid var(--bg-card-border);
+    }
+
+    .subtitle-banner {
+      background: #0e131f; border: 1px solid var(--bg-card-border); border-radius: 10px;
+      margin-top: 14px; padding: 16px; text-align: center; color: #34d399; font-weight: 800;
+      font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .lang-selector {
+      padding: 6px 12px; background: #090c10; border: 1px solid var(--bg-card-border);
+      border-radius: 8px; color: #fff; font-size: 0.8rem; outline: none; cursor: pointer;
+    }
+
+    /* GESTIÓN DE USUARIOS */
+    .admin-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+    .user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .user-table th, .user-table td {
+      padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--bg-card-border); font-size: 0.9rem;
+    }
+    .user-table th { background: #0e131f; color: var(--text-muted); font-weight: 600; }
+    .status-active { color: var(--accent-green); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <div class="logo-container">
+        <i data-lucide="hand" style="width: 44px; height: 44px; color: #fff;"></i>
+      </div>
+      <h2>Comunicador Inclusivo Pro</h2>
+      <p>Plataforma Inteligente de Traducción Bidireccional de Señas</p>
+
+      <div class="input-group">
+        <label>Usuario Administrador</label>
+        <input type="text" id="login-user" value="admin" placeholder="Ingresa usuario">
+      </div>
+      <div class="input-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" value="1234" placeholder="Ingresa contraseña">
+      </div>
+      <button class="btn-login" onclick="handleLogin()">INICIAR SESIÓN</button>
+      <div id="login-error" style="color: var(--accent-red); font-size: 0.85rem; margin-top: 12px; display: none;">
+        Credenciales incorrectas (Prueba admin / 1234)
+      </div>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="app-container" style="display: none;">
+    <header>
+      <div class="header-logo">
+        <div class="icon-box"><i data-lucide="hand" style="color: #fff;"></i></div>
+        <div>
+          <h1>Comunicador Inclusivo Pro</h1>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Traducción LSM & Lengua de Señas Internacional</span>
+        </div>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('communicator')">
+          <i data-lucide="message-square"></i> Traductor Bidireccional
+        </button>
+        <button class="tab-btn" onclick="switchTab('admin')">
+          <i data-lucide="users"></i> Gestión de Usuarios
+        </button>
+      </div>
+
+      <div class="user-info">
+        <span style="font-size: 0.85rem; font-weight: 600;" id="current-user-name">Administrador</span>
+        <div class="user-badge">A</div>
+        <button class="btn btn-red" style="padding: 6px 12px;" onclick="handleLogout()"><i data-lucide="log-out"></i></button>
+      </div>
+    </header>
+
+    <main>
+      <!-- TAB 1: COMUNICADOR BIDIRECCIONAL -->
+      <div id="tab-communicator" class="tab-content active">
+        <div class="communicator-grid">
+          
+          <!-- PANEL IZQUIERDO: SEÑAS -> VOZ/TEXTO -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">1. Captura de Señas (Persona Sorda)</span>
+            </div>
+
+            <div class="video-wrapper">
+              <span class="lang-badge" id="lang-display-badge">LSM</span>
+              <video id="input-video" playsinline></video>
+              <canvas class="overlay" id="output-canvas"></canvas>
+            </div>
+
+            <div class="detection-status" id="status-sign">
+              <i data-lucide="eye"></i> ESPERANDO SEÑA...
+            </div>
+
+            <div class="control-btns">
+              <button class="btn btn-green" onclick="startCamera()"><i data-lucide="camera"></i> Iniciar</button>
+              <button class="btn btn-blue" id="audio-btn" onclick="toggleAudio()"><i data-lucide="volume-2"></i> Voz: ON</button>
+              <button class="btn btn-red" onclick="stopCamera()"><i data-lucide="square"></i> Parar</button>
+            </div>
+
+            <div class="train-box">
+              <input type="text" id="new-sign" placeholder="Entrenar nueva seña...">
+              <button class="btn btn-green" onclick="trainSign()"><i data-lucide="plus"></i></button>
+            </div>
+
+            <div class="speaker-section">
+              <div class="speaker-title"><i data-lucide="mic"></i> Persona Oyente (Escribir o Hablar)</div>
+              <div class="speaker-controls">
+                <input type="text" id="speaker-text" placeholder="Escribe un mensaje para traducir a señas...">
+                <button class="btn btn-blue" onclick="translateToSign()"><i data-lucide="send"></i></button>
+                <button class="btn btn-green" id="mic-btn" onclick="startSpeechRecognition()"><i data-lucide="mic"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL DERECHO: AVATAR 3D INTERPRETE -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">2. Avatar Intérprete Humano 3D</span>
+              <div>
+                <select class="lang-selector" id="sign-language-select" onchange="changeLanguage()">
+                  <option value="LSM">LSM - Lengua de Señas Mexicana</option>
+                  <option value="IS">IS - Lengua de Señas Internacional</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="avatar-wrapper">
+              <div id="avatar-container" style="width:100%; height:100%;"></div>
+            </div>
+
+            <div class="subtitle-banner" id="subtitle-box">
+              AVATAR EN ESPERA / LISTO PARA INTERPRETAR
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 2: GESTIÓN DE USUARIOS -->
+      <div id="tab-admin" class="tab-content">
+        <div class="admin-grid">
+          
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Crear Nuevo Cliente / Usuario</span>
+            </div>
+            <div class="input-group">
+              <label>Nombre Completo</label>
+              <input type="text" id="new-user-name" placeholder="Ej. Carlos Mendoza">
+            </div>
+            <div class="input-group">
+              <label>Correo Electrónico</label>
+              <input type="email" id="new-user-email" placeholder="carlos@empresa.com">
+            </div>
+            <div class="input-group">
+              <label>Rol de Usuario</label>
+              <select class="input-group input" id="new-user-role" style="background:#090c10; color:#fff;">
+                <option value="Cliente">Cliente Sordo / Oyente</option>
+                <option value="Administrador">Administrador</option>
+              </select>
+            </div>
+            <button class="btn btn-green" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="createUser()">
+              <i data-lucide="user-plus"></i> CREAR USUARIO
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Usuarios Registrados en la Aplicación</span>
+            </div>
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="user-list-tbody">
+                <tr>
+                  <td>Administrador General</td>
+                  <td>admin@inclusivo.com</td>
+                  <td>Administrador</td>
+                  <td><span class="status-active">● Activo</span></td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td>Víctor Hernández</td>
+                  <td>victor@sordos.org</td>
+                  <td>Cliente</td>
+                  <td><span class="status-active">● Activo</span></td>
+                  <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Lucide Icons
     lucide.createIcons();
 
     // Estado Global
@@ -20,7 +404,7 @@
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('app-container').style.display = 'block';
         
-        // Inicialización segura del Avatar 3D tras hacer visible el layout
+        // Inicialización segura del Avatar 3D
         setTimeout(() => {
           if (!avatarInitialized) {
             initAvatar3D();
@@ -52,7 +436,7 @@
       }
     }
 
-    // Avatar 3D Auditoría & Solución
+    // Avatar 3D
     function initAvatar3D() {
       const container = document.getElementById('avatar-container');
       const w = container.clientWidth || 400;
@@ -185,7 +569,6 @@
     });
 
     hands.onResults((results) => {
-      // Ajustar resolución del canvas según el vídeo
       if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
@@ -196,12 +579,10 @@
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         for (const landmarks of results.multiHandLandmarks) {
-          // Líneas finas en verde tenue
           drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { 
             color: 'rgba(0, 255, 0, 0.4)', 
             lineWidth: 1 
           });
-          // Puntos pequeños verdes
           drawLandmarks(canvasCtx, landmarks, { 
             color: '#00FF00', 
             fillColor: '#00FF00',
@@ -326,3 +707,6 @@
     function deleteUser(btn) {
       if (confirm("¿Eliminar usuario?")) btn.closest('tr').remove();
     }
+  </script>
+</body>
+</html>
