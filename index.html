@@ -173,7 +173,6 @@
       position: relative; width: 100%; height: 420px; background: radial-gradient(circle, #1a2336 0%, #090d16 100%);
       border-radius: 10px; overflow: hidden; border: 1px solid var(--bg-card-border);
     }
-    #avatar-canvas { width: 100%; height: 100%; }
 
     .subtitle-banner {
       background: #0e131f; border: 1px solid var(--bg-card-border); border-radius: 10px;
@@ -384,10 +383,10 @@
   </div>
 
   <script>
-    // --- ICONOS LUCIDE ---
+    // Lucide Icons
     lucide.createIcons();
 
-    // --- ESTADO GLOBAL Y CONFIGURACIÓN ---
+    // Estado Global
     let autoAudio = true;
     let currentLang = 'LSM';
     let camera = null;
@@ -395,10 +394,9 @@
     let clock = new THREE.Clock();
     let isSigning = false;
     let signAnimationTimer = null;
-    let lastDetectedSign = "";
     let lastDetectionTime = 0;
 
-    // --- AUTENTICACIÓN Y NAVEGACIÓN ---
+    // Login & Tabs
     function handleLogin() {
       const u = document.getElementById('login-user').value.trim();
       const p = document.getElementById('login-pass').value.trim();
@@ -428,15 +426,13 @@
       }
     }
 
-    // --- AVATAR 3D REFINADO Y ENCUADRADO PERFECTO ---
+    // Avatar 3D
     function initAvatar3D() {
       const container = document.getElementById('avatar-container');
       const w = container.clientWidth;
       const h = container.clientHeight;
 
       scene = new THREE.Scene();
-
-      // Cámara perfectamente encuadrada en la parte superior del cuerpo
       camera3D = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
       camera3D.position.set(0, 1.45, 1.75);
       camera3D.lookAt(0, 1.38, 0);
@@ -446,7 +442,6 @@
       renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
 
-      // Iluminación de Estudio de Alta Definición
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(ambientLight);
 
@@ -464,67 +459,48 @@
 
     function buildDetailedHumanoidAvatar() {
       const avatarGroup = new THREE.Group();
-
       const skinMat = new THREE.MeshStandardMaterial({ color: 0xe5a978, roughness: 0.5 });
       const clothMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
       const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.8 });
 
-      // Torso / Camisa
-      const torsoGeo = new THREE.CylinderGeometry(0.25, 0.20, 0.75, 32);
-      const torso = new THREE.Mesh(torsoGeo, clothMat);
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.20, 0.75, 32), clothMat);
       torso.position.y = 1.0;
       avatarGroup.add(torso);
 
-      // Cuello
-      const neckGeo = new THREE.CylinderGeometry(0.065, 0.075, 0.12, 16);
-      const neck = new THREE.Mesh(neckGeo, skinMat);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.12, 16), skinMat);
       neck.position.y = 1.42;
       avatarGroup.add(neck);
 
-      // Cabeza
-      const headGeo = new THREE.SphereGeometry(0.14, 32, 32);
-      head = new THREE.Mesh(headGeo, skinMat);
+      head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), skinMat);
       head.position.y = 1.57;
       avatarGroup.add(head);
 
-      // Cabello
-      const hairGeo = new THREE.SphereGeometry(0.146, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
-      const hair = new THREE.Mesh(hairGeo, hairMat);
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.146, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2), hairMat);
       hair.position.y = 1.59;
       avatarGroup.add(hair);
 
-      // Ojos Expresivos
       const eyeGeo = new THREE.SphereGeometry(0.016, 16, 16);
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(-0.045, 1.58, 0.128);
-      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeR.position.set(0.045, 1.58, 0.128);
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.045, 1.58, 0.128);
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.045, 1.58, 0.128);
       avatarGroup.add(eyeL); avatarGroup.add(eyeR);
 
-      // Brazos y Manos Articuladas
       const armGeo = new THREE.CylinderGeometry(0.042, 0.035, 0.45, 16);
       const handGeo = new THREE.BoxGeometry(0.08, 0.02, 0.09);
 
-      // Brazo Izquierdo
       leftArm = new THREE.Group();
       leftArm.position.set(-0.28, 1.30, 0);
-      const lMesh = new THREE.Mesh(armGeo, clothMat);
-      lMesh.position.y = -0.22;
+      const lMesh = new THREE.Mesh(armGeo, clothMat); lMesh.position.y = -0.22;
       leftArm.add(lMesh);
-      leftHand = new THREE.Mesh(handGeo, skinMat);
-      leftHand.position.y = -0.45;
+      leftHand = new THREE.Mesh(handGeo, skinMat); leftHand.position.y = -0.45;
       leftArm.add(leftHand);
       avatarGroup.add(leftArm);
 
-      // Brazo Derecho
       rightArm = new THREE.Group();
       rightArm.position.set(0.28, 1.30, 0);
-      const rMesh = new THREE.Mesh(armGeo, clothMat);
-      rMesh.position.y = -0.22;
+      const rMesh = new THREE.Mesh(armGeo, clothMat); rMesh.position.y = -0.22;
       rightArm.add(rMesh);
-      rightHand = new THREE.Mesh(handGeo, skinMat);
-      rightHand.position.y = -0.45;
+      rightHand = new THREE.Mesh(handGeo, skinMat); rightHand.position.y = -0.45;
       rightArm.add(rightHand);
       avatarGroup.add(rightArm);
 
@@ -536,29 +512,23 @@
       const t = clock.getElapsedTime();
 
       if (!isSigning) {
-        // Movimiento natural en reposo (idle)
         leftArm.rotation.x = 0.3 + Math.sin(t * 1.5) * 0.05;
         leftArm.rotation.z = 0.2;
         rightArm.rotation.x = 0.3 + Math.cos(t * 1.5) * 0.05;
         rightArm.rotation.z = -0.2;
         head.rotation.y = Math.sin(t * 0.8) * 0.05;
       } else {
-        // Movimiento activo de interpretación en señas
         leftArm.rotation.x = 0.8 + Math.sin(t * 8) * 0.4;
         leftArm.rotation.y = Math.cos(t * 6) * 0.3;
-        leftArm.rotation.z = 0.3;
-
         rightArm.rotation.x = 0.8 + Math.cos(t * 8) * 0.4;
         rightArm.rotation.y = -Math.sin(t * 6) * 0.3;
-        rightArm.rotation.z = -0.3;
-
         head.rotation.y = Math.sin(t * 4) * 0.1;
       }
 
       renderer.render(scene, camera3D);
     }
 
-    // --- DETECCIÓN DE MANOS CON MEDIAPIPE (PERFECCIONADA) ---
+    // MediaPipe Hands
     const videoElement = document.getElementById('input-video');
     const canvasElement = document.getElementById('output-canvas');
     const canvasCtx = canvasElement.getContext('2d');
@@ -568,10 +538,7 @@
     });
 
     hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
+      maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7
     });
 
     hands.onResults((results) => {
@@ -580,24 +547,17 @@
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         for (const landmarks of results.multiHandLandmarks) {
-          // Dibujar conexiones y puntos de la mano para máxima visibilidad y precisión
           drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 3 });
           drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 4 });
         }
 
-        // Reconocimiento de Señas Simulado / Basado en Gestos
         const now = Date.now();
         if (now - lastDetectionTime > 3000) {
           lastDetectionTime = now;
-          const detectedText = (currentLang === 'LSM') ? "¡HOLA! ¿CÓMO ESTÁS?" : "HELLO! WELCOME (IS)";
-          
+          const detectedText = (currentLang === 'LSM') ? "¡HOLA! ¿CÓMO ESTÁS?" : "HELLO! WELCOME";
           document.getElementById('status-sign').innerHTML = `<i data-lucide="check-circle" style="color:#10b981;"></i> SEÑA DETECTADA: ${detectedText}`;
           lucide.createIcons();
-
-          // Hablar automáticamente
-          if (autoAudio) {
-            speakText(detectedText);
-          }
+          if (autoAudio) speakText(detectedText);
         }
       } else {
         document.getElementById('status-sign').innerHTML = `<i data-lucide="eye"></i> ESPERANDO SEÑA...`;
@@ -623,7 +583,6 @@
       lucide.createIcons();
     }
 
-    // --- VOZ Y RECONOCIMIENTO BIDIRECCIONAL ---
     function speakText(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -646,8 +605,6 @@
       if (!text) return;
 
       document.getElementById('subtitle-box').innerText = `AVATAR INTERPRETANDO (${currentLang}): "${text.toUpperCase()}"`;
-      
-      // Activar animación de señas del avatar por 4 segundos
       isSigning = true;
       clearTimeout(signAnimationTimer);
       signAnimationTimer = setTimeout(() => {
@@ -658,28 +615,20 @@
 
     function startSpeechRecognition() {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Tu navegador no soporta entrada de voz directa.");
+        alert("Navegador no soporta entrada de voz.");
         return;
       }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = currentLang === 'LSM' ? 'es-MX' : 'en-US';
 
-      recognition.onstart = () => {
-        document.getElementById('mic-btn').style.background = '#ef4444';
-      };
-
+      recognition.onstart = () => { document.getElementById('mic-btn').style.background = '#ef4444'; };
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('speaker-text').value = transcript;
+        document.getElementById('speaker-text').value = event.results[0][0].transcript;
         document.getElementById('mic-btn').style.background = '#10b981';
         translateToSign();
       };
-
-      recognition.onerror = () => {
-        document.getElementById('mic-btn').style.background = '#10b981';
-      };
-
+      recognition.onerror = () => { document.getElementById('mic-btn').style.background = '#10b981'; };
       recognition.start();
     }
 
@@ -691,42 +640,32 @@
     function trainSign() {
       const input = document.getElementById('new-sign');
       if (input.value.trim()) {
-        alert(`Nueva seña "${input.value}" registrada y entrenada para ${currentLang}.`);
+        alert(`Seña "${input.value}" registrada para ${currentLang}.`);
         input.value = '';
       }
     }
 
-    // --- GESTIÓN DE USUARIOS (ADMINISTRADOR) ---
     function createUser() {
       const name = document.getElementById('new-user-name').value.trim();
       const email = document.getElementById('new-user-email').value.trim();
       const role = document.getElementById('new-user-role').value;
 
-      if (!name || !email) {
-        alert("Por favor completa el nombre y correo del usuario.");
-        return;
-      }
+      if (!name || !email) return alert("Completa los datos del usuario.");
 
       const tbody = document.getElementById('user-list-tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${name}</td>
-        <td>${email}</td>
-        <td>${role}</td>
+        <td>${name}</td><td>${email}</td><td>${role}</td>
         <td><span class="status-active">● Activo</span></td>
         <td><button class="btn btn-red" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteUser(this)">Eliminar</button></td>
       `;
       tbody.appendChild(tr);
-
       document.getElementById('new-user-name').value = '';
       document.getElementById('new-user-email').value = '';
-      alert("Usuario creado exitosamente.");
     }
 
     function deleteUser(btn) {
-      if (confirm("¿Seguro que deseas eliminar este usuario?")) {
-        btn.closest('tr').remove();
-      }
+      if (confirm("¿Eliminar usuario?")) btn.closest('tr').remove();
     }
   </script>
 </body>
