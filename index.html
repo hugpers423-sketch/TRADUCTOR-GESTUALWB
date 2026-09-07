@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Traductor Bidireccional con Avatar 3D</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background: var(--card); padding: 1rem; text-align: center; border-bottom: 1px solid #334155; }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+
+    main { flex: 1; display: grid; grid-template-columns: 1fr; gap: 1rem; padding: 1rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+    @media (min-width: 850px) { main { grid-template-columns: 1fr 1fr; } }
+
+    .card { background: var(--card); border-radius: 12px; border: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .card-title { font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .viewport { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    video { display: none; }
+    canvas { width: 100%; height: 100%; object-fit: cover; }
+
+    .caption-box { background: #020617; border-radius: 8px; padding: 1rem; text-align: center; border: 2px solid #38bdf8; min-height: 70px; display: flex; align-items: center; justify-content: center; }
+    .caption-text { font-size: 1.4rem; font-weight: 800; color: #38bdf8; letter-spacing: 0.03em; }
+
+    #avatar-container { width: 100%; aspect-ratio: 4/3; background: #090d16; border-radius: 8px; overflow: hidden; border: 1px solid #334155; position: relative; }
+
+    .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; }
+    button { padding: 0.75rem 0.5rem; border: none; border-radius: 6px; background: var(--accent); color: white; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    button:active { transform: scale(0.98); }
+    button.btn-success { background: var(--success); }
+    button.btn-danger { background: var(--danger); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🖐️ Comunicador Inclusivo: Señas ⇆ Avatar 3D y Voz</h1>
+  </header>
+
+  <main>
+    <!-- MÓDULO 1: SEÑAS A TEXTO/AUDIO -->
+    <div class="card">
+      <span class="card-title">1. Entrada de Señas (Persona Sorda)</span>
+      <div class="viewport">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="output_canvas"></canvas>
+      </div>
+
+      <div class="caption-box">
+        <span id="caption-text" class="caption-text">ESPERANDO CÁMARA...</span>
+      </div>
+
+      <div class="btn-grid">
+        <button id="btn-start">INICIAR CÁMARA</button>
+        <button id="btn-auto-speak" class="btn-success">AUDIO AUTO: ON 🔊</button>
+        <button id="btn-stop" class="btn-danger">DETENER</button>
+      </div>
+    </div>
+
+    <!-- MÓDULO 2: AVATAR 3D -->
+    <div class="card">
+      <span class="card-title">2. Traductor a Avatar 3D (Para Persona Sorda)</span>
+      <div id="avatar-container"></div>
+
+      <div class="caption-box">
+        <span id="speech-caption" class="caption-text" style="color: #4ade80;">PRESIONA HABLAR...</span>
+      </div>
+
+      <div class="btn-grid">
+        <button id="btn-listen" class="btn-success">HABLAR POR MICRÓFONO 🎙️</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
